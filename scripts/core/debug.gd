@@ -20,6 +20,29 @@ func _ready() -> void:
 		Game.mode = "demo"
 		get_parent().call_deferred("goto", "res://scripts/fight/fight.gd", {"debug": args})
 		return
+	if kind == "flow":
+		# simulates a player going through the menus, saving screenshots on the way
+		var tree := get_tree()
+		var shot: String = args.get("shot", "/tmp/flow.png")
+		var steps := [[1.0, KEY_ENTER], [1.6, KEY_D], [1.9, KEY_F], [2.3, KEY_D], [2.6, KEY_F], [3.0, KEY_D], [3.4, KEY_F], [9.0, KEY_ESCAPE], [9.6, KEY_S], [10.0, KEY_ENTER], [11.0, KEY_ESCAPE], [11.5, KEY_ENTER]]
+		var shots := [1.4, 2.8, 3.2, 6.0, 8.5, 9.3, 10.6, 12.5]
+		get_parent().call_deferred("goto", "res://scripts/ui/title.gd")
+		for st in steps:
+			tree.create_timer(st[0]).timeout.connect(func():
+				for pressed in [true, false]:
+					var ev := InputEventKey.new()
+					ev.physical_keycode = st[1]
+					ev.keycode = st[1]
+					ev.pressed = pressed
+					Input.parse_input_event(ev)
+					await tree.process_frame
+					await tree.process_frame)
+		for i in shots.size():
+			var at: float = shots[i]
+			tree.create_timer(at).timeout.connect(func():
+				tree.root.get_texture().get_image().save_png(shot.replace(".png", "_%02d.png" % i)))
+		tree.create_timer(13.0).timeout.connect(func(): tree.quit())
+		return
 	if kind == "screen":
 		get_parent().call_deferred("goto", "res://scripts/ui/%s.gd" % args.get("screen", "title"))
 		var tree := get_tree()
