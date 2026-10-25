@@ -254,6 +254,9 @@ func _push_apart() -> void:
 		return
 	if f1.state in ["down", "ko_down"] or f2.state in ["down", "ko_down"]:
 		return
+	for f in fighters:
+		if f.state == "attack" and f.move.get("pass", false):
+			return
 	dx = f2.position.x - f1.position.x
 	var overlap := PUSH_W * 2.0 - absf(dx)
 	if overlap > 0.0:
