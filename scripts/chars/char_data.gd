@@ -16,6 +16,7 @@ var display_name := ""
 var epithet := ""
 var quote := ""
 var accent := Color(0.8, 0.2, 0.2)
+var trail_color := Color(1, 1, 1)
 
 var dims := {
 	"thigh": 56.0, "shin": 56.0, "torso": 78.0, "neck": 8.0, "head": 25.0,
@@ -38,6 +39,7 @@ var jump_vx := 5.2
 var dash_speed := 13.0
 var max_hp := 1000.0
 var has_swords := false
+var ai_zoner := false
 
 var poses := {}
 var moves := {}
