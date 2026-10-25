@@ -235,6 +235,10 @@ func _process(delta: float) -> void:
 		var loser: Fighter = f1 if f1.ko else f2
 		if ko_real > 2.4 and (loser.state == "ko_down" or ko_real > 5.0):
 			_round_won()
+	if Game.mode == "demo" and debug.is_empty():
+		if Input.is_action_just_pressed("pause") or Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("p1_light"):
+			get_parent().goto("res://scripts/ui/title.gd")
+		return
 	if Input.is_action_just_pressed("pause") and menu == null and state in ["fight", "intro"]:
 		_pause()
 

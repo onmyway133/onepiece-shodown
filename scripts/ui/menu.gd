@@ -16,6 +16,7 @@ var moves_view: Array = []
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size = Vector2(1280, 720)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 

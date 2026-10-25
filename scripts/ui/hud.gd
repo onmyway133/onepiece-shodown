@@ -20,6 +20,7 @@ var dark := 0.0
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size = Vector2(1280, 720)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cut_rig = Rig.new()
 	cut_rig.visible = false

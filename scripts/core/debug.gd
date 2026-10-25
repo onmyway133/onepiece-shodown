@@ -20,6 +20,15 @@ func _ready() -> void:
 		Game.mode = "demo"
 		get_parent().call_deferred("goto", "res://scripts/fight/fight.gd", {"debug": args})
 		return
+	if kind == "screen":
+		get_parent().call_deferred("goto", "res://scripts/ui/%s.gd" % args.get("screen", "title"))
+		var tree := get_tree()
+		var shot: String = args.get("shot", "/tmp/screen.png")
+		var timer := tree.create_timer(float(args.get("wait", "1.5")))
+		timer.timeout.connect(func():
+			tree.root.get_texture().get_image().save_png(shot)
+			tree.quit())
+		return
 	var cd := Game.char_data(args.get("char", "luffy"))
 	var list := []
 	if kind == "poses":
