@@ -332,6 +332,9 @@ func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, sh
 	if pts.size() < 3:
 		return
 	var base := fc(c, st)
+	if Geometry2D.triangulate_polygon(pts).is_empty():
+		outline(cv, pts, w)
+		return
 	if shade:
 		cv.draw_colored_polygon(pts, base.darkened(0.28))
 		var cen := Vector2.ZERO
@@ -344,7 +347,10 @@ func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, sh
 			var l := v.length()
 			var s := maxf(l - 3.2, l * 0.55)
 			inner.append(cen + v.normalized() * s + LIGHT * 1.6)
-		cv.draw_colored_polygon(inner, base)
+		if Geometry2D.triangulate_polygon(inner).is_empty():
+			cv.draw_colored_polygon(pts, base)
+		else:
+			cv.draw_colored_polygon(inner, base)
 	else:
 		cv.draw_colored_polygon(pts, base)
 	outline(cv, pts, w)
