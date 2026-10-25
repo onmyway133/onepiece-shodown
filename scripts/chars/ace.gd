@@ -125,7 +125,7 @@ func setup() -> void:
 		"title": "DAI ENKAI: ENTEI!",
 		"super": true,
 		"anim": [[34, "raise"], [10, {"base": "raise", "t": -16.0}], [6, {"t": 26.0, "head": -10.0, "ua_f": 100.0, "fa_f": 95.0, "ua_b": -30.0, "fa_b": 10.0, "th_f": 46.0, "face": "shout", "fx": "fire_f"}], [14, throw], [14, "idle"]],
-		"proj": [[46, {"type": "entei", "pos": [140, -260], "vel": [6.5, 1.0], "acc": [0.12, 0], "r": 115.0, "size": 1.0, "life": 120, "hp": 8, "hits": 5, "every": 6,
+		"proj": [[46, {"type": "entei", "pos": [140, -260], "vel": [6.5, 1.0], "acc": [0.12, 0], "r": 115.0, "size": 1.35, "life": 120, "hp": 8, "hits": 5, "every": 6,
 			"hit": {"dmg": 54.0, "stun": 26, "bstun": 12, "kb": 4.0, "lift": -6.0, "kd": true, "hs": 8, "spark": "fire", "sfx": "hit_h", "chip": 0.2}}]],
 		"invuln": [1, 30], "sfx": [[2, "fire_big"], [20, "aura"], [45, "fire_big"]], "shake_at": [[46, 8.0]],
 	}
@@ -198,9 +198,9 @@ func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary)
 			cv.draw_circle(c, r + 7.0, Color(1.0, 0.3, 0.0, 0.3))
 			cv.draw_circle(c, r, Color(1.0, 0.6, 0.1, 0.5))
 	elif fxk == "sun":
-		var c: Vector2 = J.hand_f + Vector2(0, -90)
+		var c: Vector2 = J.hand_f + Vector2(0, -70)
 		var grow := clampf(fmod(tt, 100.0), 0.0, 1.0)
-		var r := 90.0 + 8.0 * sin(tt * 9.0)
+		var r := 70.0 + 6.0 * sin(tt * 9.0)
 		cv.draw_circle(c, r * 1.35, Color(1.0, 0.25, 0.0, 0.25 * grow))
 		cv.draw_circle(c, r, Color(1.0, 0.5, 0.05, 0.6 * grow))
 		cv.draw_circle(c, r * 0.65, Color(1.0, 0.85, 0.35, 0.85 * grow))

@@ -26,3 +26,12 @@ func goto(script_path: String, data := {}) -> void:
 		n.setup(data)
 	current = n
 	add_child(n)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# F11, or Alt/Cmd + Enter, toggles fullscreen
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k: InputEventKey = event
+		if k.physical_keycode == KEY_F11 or (k.physical_keycode == KEY_ENTER and (k.alt_pressed or k.meta_pressed)):
+			var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)

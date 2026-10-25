@@ -57,7 +57,7 @@ func super_cutin(f, title: String) -> void:
 	cut_rig.visible = true
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	t += delta
 	for i in 2:
 		var f = f1 if i == 0 else f2

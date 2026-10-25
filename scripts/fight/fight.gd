@@ -26,6 +26,45 @@ class Human:
 		return Controls.read(p, merge)
 
 
+class Showcase:
+	## Scripted inputs that perform every special with real motion inputs (for tests).
+	var seq: Array = []
+	var i := 0
+	var left := 0
+
+	func _init() -> void:
+		var motions := [
+			[[0, -1], [1, -1], [1, 0], "light"], [[0, -1], [1, -1], [1, 0], "heavy"],
+			[[0, -1], [-1, -1], [-1, 0], "light"], [[1, 0], [0, -1], [1, -1], "light"], ["super"],
+		]
+		for m in motions:
+			for step in m:
+				var d := Controls.empty()
+				if step is String:
+					d[step] = true
+					d[step + "_held"] = true
+					seq.append([d, 1])
+				else:
+					d.x = step[0]
+					d.y = step[1]
+					seq.append([d, 3])
+			seq.append([Controls.empty(), 110])
+
+	func get_input(f) -> Dictionary:
+		if f.state == "idle" and seq.size() > 0 and i < seq.size():
+			pass
+		if i >= seq.size():
+			return Controls.empty()
+		var cur: Array = seq[i]
+		left += 1
+		if left >= int(cur[1]):
+			left = 0
+			i += 1
+		var d: Dictionary = cur[0].duplicate()
+		d.x = int(d.x) * f.facing
+		return d
+
+
 class Dummy:
 	var mode := "stand"
 
@@ -99,7 +138,11 @@ func _ready() -> void:
 			c2 = Dummy.new()
 		"demo":
 			c1 = AI.new(int(debug.get("lv1", "2")))
+			if debug.has("showcase"):
+				c1 = Showcase.new()
 			c2 = AI.new(int(debug.get("lv2", "2")))
+			if debug.has("showcase"):
+				c2 = Dummy.new()
 		_:
 			c1 = Human.new(1, true)
 			c2 = AI.new(Game.difficulty)
@@ -180,6 +223,11 @@ func _flow() -> void:
 				state = "fight"
 				st_t = 0
 		"fight":
+			if debug.has("showcase"):
+				f1.hp = f1.cd.max_hp
+				f2.hp = f2.cd.max_hp
+				if f1.state == "idle" and f1.rage_mode == 0:
+					f1.add_rage(100.0)
 			if Game.mode == "training":
 				_training()
 				return

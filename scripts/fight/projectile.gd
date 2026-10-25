@@ -86,8 +86,10 @@ func _draw() -> void:
 		"fire_fist":
 			_draw_fire_fist(fade)
 		"firefly":
-			draw_circle(Vector2.ZERO, 9.0, Color(1.0, 0.6, 0.1, 0.5 * fade))
-			draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.95, 0.5, fade))
+			var pulse := 1.0 + 0.25 * sin(t * 0.5)
+			draw_circle(Vector2.ZERO, 16.0 * pulse, Color(1.0, 0.5, 0.05, 0.35 * fade))
+			draw_circle(Vector2.ZERO, 9.0, Color(1.0, 0.75, 0.2, 0.8 * fade))
+			draw_circle(Vector2.ZERO, 4.5, Color(1.0, 1.0, 0.8, fade))
 		"entei":
 			_draw_entei(fade)
 		"cross":
