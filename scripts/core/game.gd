@@ -1,7 +1,7 @@
 extends Node
 ## Global match settings and helpers shared by every screen.
 
-const ROSTER := ["luffy", "zoro"]
+const ROSTER := ["luffy", "zoro", "sanji", "ace"]
 const STAGES := [
 	{"id": "merry", "name": "Going Merry - Sunset"},
 	{"id": "wano", "name": "Wano - Sakura Shrine"},

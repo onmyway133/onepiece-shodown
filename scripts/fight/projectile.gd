@@ -105,8 +105,9 @@ func _crescent(rad: float, thick: float, c: Color, wobble := 0.0) -> void:
 	for i in range(n, -1, -1):
 		var a := lerpf(-1.2, 1.2, float(i) / n)
 		var k := 1.0 - pow(absf(a) / 1.2, 2.0)
-		pts.append(Vector2(cos(a) * (rad - thick * k - wobble) * facing, sin(a) * rad * 1.15))
-	draw_colored_polygon(pts, c)
+		pts.append(Vector2(cos(a) * (rad - thick * k - absf(wobble) - 1.5) * facing, sin(a) * rad * 1.12))
+	if not Geometry2D.triangulate_polygon(pts).is_empty():
+		draw_colored_polygon(pts, c)
 
 
 func _draw_wind(fade: float) -> void:

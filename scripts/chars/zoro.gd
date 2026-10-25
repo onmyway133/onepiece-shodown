@@ -214,7 +214,8 @@ func _draw_blade(cv: CanvasItem, start: Vector2, v: Vector2, length: float, hand
 		var curve := sin(u * PI * 0.9) * 6.0
 		var w := lerpf(3.6, 0.6, pow(u, 3.0))
 		pts.append(b0.lerp(tip, u) + n * (curve - w))
-	cv.draw_colored_polygon(pts, fc(Color("d5dde6"), st))
+	if not Geometry2D.triangulate_polygon(pts).is_empty():
+		cv.draw_colored_polygon(pts, fc(Color("d5dde6"), st))
 	outline(cv, pts, 1.5)
 	var edge := PackedVector2Array()
 	for i in steps + 1:
