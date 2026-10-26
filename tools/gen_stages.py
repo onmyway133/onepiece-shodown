@@ -335,6 +335,207 @@ def wano():
     save(grain(g, 5), "wano", "ground")
 
 
+# ---------------------------------------------------------------- Wano Flower Capital at night
+
+def paper_lantern(d, x, y, r, color, rng):
+    """A round paper lantern: body, ribs, dark caps and a short cord."""
+    d.line([(x, y - r * 1.6), (x, y - r * 0.9)], fill=(30, 20, 20, 255), width=2)
+    d.ellipse([x - r, y - r * 1.15, x + r, y + r * 1.15], fill=color)
+    rib = tuple(int(c * 0.75) for c in color[:3]) + (255,)
+    for k in (-0.55, 0.0, 0.55):
+        d.arc([x - r * (1 - abs(k)) - r * 0.02, y - r * 1.15, x + r * (1 - abs(k)) + r * 0.02, y + r * 1.15], 270, 90, fill=rib, width=1)
+        d.line([(x - r * math.sqrt(max(0.0, 1 - k * k)), y + k * r), (x + r * math.sqrt(max(0.0, 1 - k * k)), y + k * r)], fill=rib, width=1)
+    d.rectangle([x - r * 0.5, y - r * 1.25, x + r * 0.5, y - r * 1.05], fill=(30, 20, 20, 255))
+    d.rectangle([x - r * 0.5, y + r * 1.05, x + r * 0.5, y + r * 1.25], fill=(30, 20, 20, 255))
+
+
+def machiya(d, x0, w, top, base, rng, lit=True):
+    """Two-storey Edo townhouse facade: tiled eaves, lattice windows, noren curtains."""
+    wood = (58, 34, 30, 255)
+    dark = (24, 14, 16, 255)
+    roof = (34, 32, 48, 255)
+    roof_hi = (70, 66, 92, 255)
+    glow_c = (226, 150, 84, 255) if lit else (90, 70, 70, 255)
+    d.rectangle([x0, top, x0 + w, base], fill=wood, outline=dark, width=3)
+    # upper eave and roof
+    d.polygon([(x0 - 30, top + 6), (x0 + w + 30, top + 6), (x0 + w + 6, top - 60), (x0 - 6, top - 60)], fill=roof, outline=dark)
+    for i in range(0, w + 40, 18):
+        d.line([(x0 - 24 + i, top + 4), (x0 - 4 + i * 0.95, top - 56)], fill=roof_hi, width=2)
+    # upper floor lattice window
+    mid = top + (base - top) * 0.42
+    wx0, wx1 = x0 + w * 0.12, x0 + w * 0.88
+    d.rectangle([wx0, top + 26, wx1, mid - 24], fill=glow_c, outline=dark, width=4)
+    for xx in np.arange(wx0, wx1, 9):
+        d.line([(xx, top + 26), (xx, mid - 24)], fill=(110, 60, 40, 255), width=2)
+    # lower eave
+    d.polygon([(x0 - 24, mid + 6), (x0 + w + 24, mid + 6), (x0 + w + 4, mid - 30), (x0 - 4, mid - 30)], fill=roof, outline=dark)
+    # shop front: shoji panels and a noren curtain
+    sx0, sx1 = x0 + 12, x0 + w - 12
+    d.rectangle([sx0, mid + 24, sx1, base - 8], fill=glow_c, outline=dark, width=4)
+    n = max(2, int((sx1 - sx0) / 46))
+    for k in range(1, n):
+        xx = sx0 + (sx1 - sx0) * k / n
+        d.line([(xx, mid + 24), (xx, base - 8)], fill=dark, width=4)
+    for yy in np.arange(mid + 50, base - 8, 30):
+        d.line([(sx0, yy), (sx1, yy)], fill=(150, 90, 50, 255), width=2)
+    noren = [(180, 36, 40, 255), (36, 56, 120, 255), (50, 90, 64, 255), (110, 36, 96, 255)][int(x0 / 7) % 4]
+    nw = (sx1 - sx0) * rng.uniform(0.5, 0.8)
+    nx = sx0 + (sx1 - sx0 - nw) * 0.5
+    strips = rng.randint(3, 5)
+    for k in range(strips):
+        a = nx + nw * k / strips + 3
+        b = nx + nw * (k + 1) / strips - 3
+        d.rectangle([a, mid + 26, b, mid + 26 + (base - mid) * 0.38], fill=noren, outline=dark, width=2)
+    d.ellipse([nx + nw / 2 - 16, mid + 40, nx + nw / 2 + 16, mid + 72], outline=(240, 230, 210, 255), width=4)
+    # hanging shop sign
+    if rng.random() < 0.6:
+        sx = x0 + w * rng.uniform(0.2, 0.8)
+        d.rectangle([sx - 22, top + 34, sx + 22, top + 120], fill=(30, 22, 20, 255), outline=(200, 160, 80, 255), width=3)
+        for k in range(3):
+            d.rectangle([sx - 8, top + 46 + k * 24, sx + 8, top + 56 + k * 24], fill=(220, 190, 120, 255))
+
+
+def flower():
+    horizon = 700
+    sky = vgrad([(0, (8, 10, 34)), (300, (24, 32, 80)), (560, (70, 60, 120)), (horizon, (190, 110, 110)), (H, (190, 110, 110))])
+    img = to_img(sky)
+    rng = random.Random(77)
+    d = ImageDraw.Draw(img)
+    for i in range(400):
+        x, y = rng.randint(0, W), rng.randint(0, 520)
+        b = rng.randint(120, 255)
+        r = rng.choice([1, 1, 1, 2])
+        d.ellipse([x, y, x + r, y + r], fill=(b, b, min(255, b + 20), 255))
+    img = glow(img, (1650, 260), 220, (200, 210, 255, 120))
+    d = ImageDraw.Draw(img)
+    d.ellipse([1650 - 70, 260 - 70, 1650 + 70, 260 + 70], fill=(245, 240, 225, 255))
+    d.ellipse([1650 - 40, 260 - 30, 1650 - 10, 260], fill=(225, 220, 205, 255))
+    img = clouds(img, 180, 420, (120, 120, 170), (40, 40, 80), 61, 0.6, 360)
+    # Oden castle on the hill
+    hill = ridge(700, 90, 71)
+    img = Image.alpha_composite(img, silhouette(hill, (40, 30, 60, 255), blur=2))
+    castle = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(castle)
+    cx, cy = 1150, 640
+    col = (30, 22, 46, 255)
+    for i in range(5):
+        w = 230 - i * 40
+        y = cy - i * 62
+        d.rectangle([cx - w * 0.7, y - 46, cx + w * 0.7, y], fill=col)
+        d.polygon([(cx - w, y - 40), (cx + w, y - 40), (cx + w * 0.7, y - 66), (cx - w * 0.7, y - 66)], fill=col)
+        for k in range(-2, 3):
+            if rng.random() < 0.6:
+                d.rectangle([cx + k * w * 0.24 - 5, y - 32, cx + k * w * 0.24 + 5, y - 18], fill=(255, 200, 120, 255))
+    castle = glow(castle, (cx, cy - 150), 200, (255, 170, 110, 50))
+    img = Image.alpha_composite(img, castle)
+    save(grain(img, 4), "flower", "sky")
+
+    # far: rooftops of the city with lit windows and strings of lanterns
+    far = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(far)
+    rng = random.Random(81)
+    x = -40
+    while x < W:
+        w = rng.randint(140, 260)
+        top = rng.randint(560, 640)
+        d.rectangle([x, top, x + w, 800], fill=(44, 30, 50, 255))
+        d.polygon([(x - 20, top + 4), (x + w + 20, top + 4), (x + w - 10, top - 34), (x + 10, top - 34)], fill=(28, 22, 40, 255))
+        for k in range(rng.randint(2, 5)):
+            wx = x + 15 + rng.random() * (w - 40)
+            wy = top + 20 + rng.random() * 120
+            d.rectangle([wx, wy, wx + 22, wy + 16], fill=(255, 190, 110, 255))
+        x += w + rng.randint(-10, 20)
+    for k in range(6):
+        x0 = k * 420 + rng.randint(-40, 40)
+        x1 = x0 + 400
+        y0 = 560 + rng.randint(-20, 20)
+        for i in range(12):
+            u = i / 11
+            px = x0 + (x1 - x0) * u
+            py = y0 + math.sin(u * math.pi) * 50
+            d.ellipse([px - 6, py - 7, px + 6, py + 7], fill=(255, 120 + rng.randint(0, 80), 60, 255))
+    far = far.filter(ImageFilter.GaussianBlur(1.6))
+    for k in range(10):
+        far = glow(far, (rng.randint(0, W), rng.randint(560, 700)), 90, (255, 160, 90, 60))
+    save(far, "flower", "far")
+
+    # mid: the street facades
+    mid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(mid)
+    rng = random.Random(91)
+    x = -30
+    while x < W:
+        w = rng.randint(300, 420)
+        machiya(d, x, w, rng.randint(300, 360), 880, rng)
+        x += w + 26
+    # sakura trees in front of a couple of houses
+    for tx in (380, 2050):
+        sakura_tree(d, tx, 812, 360, rng, trunk=(50, 28, 34, 255), blossom=(190, 110, 150, 235), scale=0.9)
+    # strings of paper lanterns across the street
+    lanterns = []
+    for k in range(5):
+        x0 = k * 520 - 60
+        x1 = x0 + 560
+        y0 = 250 + rng.randint(-20, 20)
+        d.line([(x0 + (x1 - x0) * i / 20, y0 + math.sin(i / 20 * math.pi) * 90) for i in range(21)], fill=(30, 20, 20, 255), width=3)
+        for i in range(1, 8):
+            u = i / 8
+            px = x0 + (x1 - x0) * u
+            py = y0 + math.sin(u * math.pi) * 90 + 26
+            c = [(230, 60, 40, 255), (250, 170, 60, 255), (240, 230, 200, 255)][(i + k) % 3]
+            paper_lantern(d, px, py, 20, c, rng)
+            lanterns.append((px, py))
+    # big shop lanterns at the doors
+    for k in range(9):
+        px = 120 + k * 270 + rng.randint(-30, 30)
+        paper_lantern(d, px, 560, 30, (240, 80, 50, 255), rng)
+        lanterns.append((px, 560))
+    mid = mid.filter(ImageFilter.GaussianBlur(0.6))
+    # night tint, with the light falling off toward the rooftops
+    m = np.asarray(mid).astype(np.float32)
+    shade = np.clip(0.55 + (np.arange(H)[:, None] - 250) / 900.0, 0.55, 0.9)
+    m[:, :, :3] *= shade[:, :, None]
+    mid = Image.fromarray(np.clip(m, 0, 255).astype(np.uint8), "RGBA")
+    for px, py in lanterns:
+        mid = glow(mid, (px, py), 70, (255, 150, 70, 90))
+    save(grain(mid, 4), "flower", "mid")
+
+    # ground: a wooden street lit by the lanterns
+    a = np.zeros((H, W, 4), np.float32)
+    top = 800
+    n = noise(W, H, 40, 5, 95)
+    ys = np.arange(H)[:, None]
+    a[:, :, 0] = 120 + 50 * n
+    a[:, :, 1] = 78 + 34 * n
+    a[:, :, 2] = 56 + 22 * n
+    a[top:, :, 3] = 255
+    # board seams get further apart toward the viewer
+    y = top + 6
+    gap = 12
+    while y < H:
+        a[int(y):int(y) + 2, :, :3] *= 0.45
+        y += gap
+        gap *= 1.25
+    rng = random.Random(97)
+    for xs in range(0, W, 90):
+        x = xs + rng.randint(-20, 20)
+        a[top:, x:x + 2, :3] *= 0.7
+    # warm pools of light from the lanterns, darker toward the front
+    light = np.zeros((H, W), np.float32)
+    for k in range(9):
+        cx = 120 + k * 270
+        light += np.exp(-(((np.arange(W)[None, :] - cx) / 160.0) ** 2) - (((ys - 850) / 60.0) ** 2))
+    a[:, :, :3] *= (0.75 + 0.6 * np.clip(light, 0, 1))[:, :, None]
+    fade = np.clip(1.0 - (ys - top) / 400.0, 0.45, 1.0)
+    a[:, :, :3] *= fade[:, :, None]
+    g = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+    d = ImageDraw.Draw(g)
+    for i in range(300):
+        x, y = rng.randint(0, W), rng.randint(top + 5, H)
+        d.ellipse([x, y, x + 8, y + 4], fill=(255, 180, 200, 220))
+    save(grain(g, 5), "flower", "ground")
+
+
 # ---------------------------------------------------------------- Alabasta desert night
 
 def alabasta():
@@ -450,4 +651,5 @@ if __name__ == "__main__":
     merry()
     wano()
     alabasta()
+    flower()
     title_bg()

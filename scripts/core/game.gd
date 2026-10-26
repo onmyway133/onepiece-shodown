@@ -6,6 +6,7 @@ const STAGES := [
 	{"id": "merry", "name": "Going Merry - Sunset", "rim": Color(1.0, 0.62, 0.3, 0.5)},
 	{"id": "wano", "name": "Wano - Sakura Shrine", "rim": Color(1.0, 0.6, 0.78, 0.45)},
 	{"id": "alabasta", "name": "Alabasta - Desert Night", "rim": Color(0.5, 0.7, 1.0, 0.5)},
+	{"id": "flower", "name": "Wano - Flower Capital Night", "rim": Color(1.0, 0.66, 0.38, 0.5)},
 ]
 const DIFFICULTIES := ["EASY", "NORMAL", "HARD", "PIRATE KING"]
 
