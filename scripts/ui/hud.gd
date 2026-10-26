@@ -16,6 +16,8 @@ var cutin := {}
 var cut_rig: Node2D
 var t := 0.0
 var dark := 0.0
+var portraits: Array = []
+const PORTRAIT := Vector2(104, 104)
 
 
 func _ready() -> void:
@@ -31,6 +33,61 @@ func setup(fi, a, b) -> void:
 	fight = fi
 	f1 = a
 	f2 = b
+	for i in 2:
+		var f = a if i == 0 else b
+		var clip := Control.new()
+		clip.clip_contents = true
+		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		clip.position = Vector2(22.0 if i == 0 else 1280.0 - 22.0 - PORTRAIT.x, 14)
+		clip.size = PORTRAIT
+		add_child(clip)
+		move_child(clip, 0)
+		var r := Rig.new()
+		r.cd = f.cd
+		var sc := 1.5
+		r.scale = Vector2(sc if i == 0 else -sc, sc)
+		clip.add_child(r)
+		portraits.append({"clip": clip, "rig": r, "f": f})
+		_update_portrait(portraits[i])
+	# the HUD draws behind its children, so a top layer draws the portrait borders
+	var top := Control.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.size = size
+	top.draw.connect(func(): _draw_on_top(top))
+	add_child(top)
+	_top = top
+
+
+var _top: Control
+
+
+func _draw_on_top(cv: Control) -> void:
+	for i in 2:
+		var x := 22.0 if i == 0 else 1280.0 - 22.0 - PORTRAIT.x
+		cv.draw_rect(Rect2(Vector2(x, 14), PORTRAIT), GOLD, false, 3.0)
+
+
+func _update_portrait(pt: Dictionary) -> void:
+	var f = pt.f
+	var p: Dictionary = f.cd.pose("idle").duplicate()
+	p.t = 0.0
+	p.head = -4.0
+	if f.state in ["hit", "air_hit", "down", "ko_down"] or f.ko:
+		p.face = "hurt"
+	elif f.state == "attack":
+		p.face = "attack"
+	elif f.rage_mode > 0:
+		p.face = "angry"
+	elif f.state == "win":
+		p.face = "grin"
+	var r = pt.rig
+	r.st = {"time": t, "tint": f.cd.tint_for(f.pose), "flash": f.flash}
+	r.set_pose(p, true)
+	var R: float = f.cd.dims.head
+	var head: Vector2 = r.J.head * r.scale.y
+	var cx: float = PORTRAIT.x * 0.5 - head.x * signf(r.scale.x) * 1.0
+	r.position = Vector2(PORTRAIT.x * 0.5 - head.x * signf(r.scale.x) - R * 0.3 * r.scale.x, PORTRAIT.y * 0.62 - head.y)
+	var _u := cx
 
 
 func banner(text: String, dur := 60, size := 110, col := Color(1, 0.92, 0.6), sub := "") -> void:
@@ -89,7 +146,11 @@ func _physics_process(delta: float) -> void:
 			cutin = {}
 			cut_rig.visible = false
 	dark = move_toward(dark, 0.6 if not cutin.is_empty() else 0.0, delta * 6.0)
+	for pt in portraits:
+		_update_portrait(pt)
 	queue_redraw()
+	if _top:
+		_top.queue_redraw()
 
 
 func _draw() -> void:
@@ -100,6 +161,7 @@ func _draw() -> void:
 		_draw_cutin(font)
 	if f1 == null:
 		return
+	_draw_portrait_frames()
 	_draw_bar(font, f1, 0)
 	_draw_bar(font, f2, 1)
 	_draw_timer(font)
@@ -125,89 +187,167 @@ func _text(font: Font, pos: Vector2, s: String, size: int, c: Color, al := HORIZ
 	draw_string(font, pos, s, al, w, size, c)
 
 
+const GOLD := Color(0.98, 0.78, 0.25)
+const INK := Color(0.04, 0.02, 0.04)
+const SPIRIT := Color(0.62, 0.3, 0.95)
+
+
+## A rough ink brush stroke from x0 to x1, tapering into bristles at one end.
+func _brush(x0: float, y0: float, x1: float, y1: float, seed: int, c: Color, taper_right := true) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var top := PackedVector2Array()
+	var bot := PackedVector2Array()
+	var n := int(absf(x1 - x0) / 14.0) + 2
+	var h := y1 - y0
+	for i in n + 1:
+		var u := float(i) / n
+		var x := lerpf(x0, x1, u)
+		var tp := u if taper_right else 1.0 - u
+		var squeeze := clampf((tp - 0.82) / 0.18, 0.0, 1.0)
+		var j := rng.randf_range(-2.5, 2.5)
+		top.append(Vector2(x, y0 + j + h * 0.3 * squeeze))
+		bot.append(Vector2(x, y1 + rng.randf_range(-2.5, 2.5) - h * 0.45 * squeeze))
+	# splayed bristles at the dry end
+	var end_x := x1 if taper_right else x0
+	var sgn := 1.0 if taper_right else -1.0
+	var tip := PackedVector2Array()
+	for k in 5:
+		var yy := lerpf(y0 + h * 0.3, y1 - h * 0.3, float(k) / 4.0)
+		tip.append(Vector2(end_x + sgn * rng.randf_range(18.0, 46.0), yy))
+		tip.append(Vector2(end_x + sgn * 4.0, yy + h * 0.06))
+	if not taper_right:
+		tip.reverse()
+	bot.reverse()
+	var poly := top
+	if taper_right:
+		poly = top + tip + bot
+	else:
+		poly = top + bot + tip
+	if not Geometry2D.triangulate_polygon(poly).is_empty():
+		draw_colored_polygon(poly, c)
+	# dry brush streaks
+	for k in 4:
+		var yy := y0 + h * rng.randf_range(0.2, 0.8)
+		var xa := lerpf(x0, x1, rng.randf_range(0.0, 0.5))
+		var xb := lerpf(x0, x1, rng.randf_range(0.6, 1.0))
+		draw_line(Vector2(xa, yy), Vector2(xb, yy + rng.randf_range(-2, 2)), Color(c.r + 0.08, c.g + 0.06, c.b + 0.06, c.a * 0.6), 1.5, true)
+
+
 func _draw_bar(font: Font, f, i: int) -> void:
-	var w := 500.0
-	var h := 26.0
-	var y := 34.0
-	var x0 := 70.0 if i == 0 else 1280.0 - 70.0 - w
-	var sk := 14.0
-	var frame := PackedVector2Array([Vector2(x0 - 6, y - 6), Vector2(x0 + w + 6 + sk, y - 6), Vector2(x0 + w + 6, y + h + 6), Vector2(x0 - 6 - sk, y + h + 6)])
-	draw_colored_polygon(frame, Color(0.08, 0.05, 0.06))
-	draw_polyline(frame + PackedVector2Array([frame[0]]), Color(0.85, 0.7, 0.35), 2.0, true)
-	var base := PackedVector2Array([Vector2(x0, y), Vector2(x0 + w + sk, y), Vector2(x0 + w, y + h), Vector2(x0 - sk, y + h)])
-	draw_colored_polygon(base, Color(0.25, 0.05, 0.05))
+	var w := 470.0
+	var h := 24.0
+	var y := 36.0
+	var x0 := 140.0 if i == 0 else 1280.0 - 140.0 - w
+	# ink backing
+	if i == 0:
+		_brush(110.0, y - 16, x0 + w + 6, y + h + 14, 11, Color(INK, 0.92), true)
+	else:
+		_brush(x0 - 6, y - 16, 1170.0, y + h + 14, 23, Color(INK, 0.92), false)
+	draw_rect(Rect2(x0, y, w, h), Color(0.22, 0.04, 0.05))
 	var ratio_lag: float = lag[i]
 	var ratio: float = shown[i]
-	_fill(x0, y, w, h, sk, ratio_lag, i, Color(1.0, 0.95, 0.9) if f.flash > 0.0 else Color(0.85, 0.12, 0.1))
-	var c1 := Color(1.0, 0.86, 0.2)
-	var c2 := Color(0.98, 0.6, 0.1)
+	_fill(x0, y, w, h, ratio_lag, i, Color(1.0, 0.95, 0.9) if f.flash > 0.0 else Color(0.85, 0.12, 0.1))
+	var c1 := Color(1.0, 0.93, 0.55)
+	var c2 := GOLD
+	var c3 := Color(0.85, 0.5, 0.12)
 	if ratio < 0.3:
 		var pulse := 0.5 + 0.5 * sin(t * 10.0)
-		c1 = c1.lerp(Color(1, 0.3, 0.2), pulse)
-	_fill(x0, y, w, h * 0.55, sk * 0.55, ratio, i, c1)
-	_fill(x0 - sk * 0.55, y + h * 0.55, w, h * 0.45, sk * 0.45, ratio, i, c2)
+		c2 = c2.lerp(Color(1, 0.3, 0.2), pulse)
+		c3 = c3.lerp(Color(0.8, 0.1, 0.1), pulse)
+	_fill(x0, y, w, h * 0.35, ratio, i, c1)
+	_fill(x0, y + h * 0.35, w, h * 0.35, ratio, i, c2)
+	_fill(x0, y + h * 0.7, w, h * 0.3, ratio, i, c3)
+	draw_rect(Rect2(x0, y, w, h), Color(0.1, 0.06, 0.04), false, 2.0)
 	# name
-	var nx := x0 if i == 0 else x0 + w - 300.0
+	var nx := x0 + 10.0 if i == 0 else x0 + w - 310.0
 	var al := HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
-	_text(font, Vector2(nx, y + h + 34), f.cd.display_name, 30, Color(1, 1, 1), al, 300.0, 7)
-	# round wins
+	_text(font, Vector2(nx, y + h + 30), f.cd.display_name, 28, Color(1, 1, 1), al, 300.0, 7)
+	# round wins: spirit gems
 	for k in Game.rounds_to_win:
-		var cx := x0 + w - 20.0 - k * 30.0 if i == 0 else x0 + 20.0 + k * 30.0
+		var cx := x0 + w - 74.0 - k * 32.0 if i == 0 else x0 + 74.0 + k * 32.0
+		var cy := y + h + 26.0
 		var won: bool = k < f.wins
-		draw_circle(Vector2(cx, y + h + 22), 10.0, Color(0.1, 0.05, 0.05))
-		draw_circle(Vector2(cx, y + h + 22), 7.0, Color(1.0, 0.75, 0.15) if won else Color(0.3, 0.25, 0.25))
+		var gem := PackedVector2Array([Vector2(cx, cy - 13), Vector2(cx + 11, cy), Vector2(cx, cy + 13), Vector2(cx - 11, cy)])
+		draw_colored_polygon(gem, INK)
+		var inner := PackedVector2Array([Vector2(cx, cy - 8), Vector2(cx + 7, cy), Vector2(cx, cy + 8), Vector2(cx - 7, cy)])
+		draw_colored_polygon(inner, SPIRIT.lightened(0.15) if won else Color(0.25, 0.2, 0.3))
+		if won:
+			draw_circle(Vector2(cx - 2, cy - 3), 2.0, Color(1, 1, 1, 0.8))
+		draw_polyline(gem + PackedVector2Array([gem[0]]), GOLD, 1.6, true)
 
 
-func _fill(x0: float, y: float, w: float, h: float, sk: float, ratio: float, i: int, c: Color) -> void:
+func _fill(x0: float, y: float, w: float, h: float, ratio: float, i: int, c: Color) -> void:
 	if ratio <= 0.001:
 		return
 	var fw := w * ratio
-	var pts: PackedVector2Array
 	if i == 0:
-		# P1 drains toward the center-left: anchor at the right (center) edge
-		var xr := x0 + w
-		pts = PackedVector2Array([Vector2(xr - fw + sk, y), Vector2(xr + sk, y), Vector2(xr, y + h), Vector2(xr - fw, y + h)])
+		# P1 drains toward the left: anchored at the center edge
+		draw_rect(Rect2(x0 + w - fw, y, fw, h), c)
 	else:
-		pts = PackedVector2Array([Vector2(x0, y), Vector2(x0 + fw + sk, y), Vector2(x0 + fw, y + h), Vector2(x0 - sk, y + h)])
-	draw_colored_polygon(pts, c)
+		draw_rect(Rect2(x0, y, fw, h), c)
+
+
+func _draw_portrait_frames() -> void:
+	for i in 2:
+		var x := 22.0 if i == 0 else 1280.0 - 22.0 - PORTRAIT.x
+		var r := Rect2(Vector2(x, 14), PORTRAIT)
+		_brush(r.position.x - 12, r.position.y - 6, r.end.x + 12, r.end.y + 8, 40 + i, Color(INK, 0.95), i == 1)
+		var f = f1 if i == 0 else f2
+		draw_rect(r, f.cd.accent.darkened(0.55))
+		draw_rect(r.grow(-4), f.cd.accent.darkened(0.25))
 
 
 func _draw_timer(font: Font) -> void:
-	var c := Vector2(640, 52)
-	draw_circle(c, 44.0, Color(0.08, 0.05, 0.06))
-	draw_arc(c, 44.0, 0, TAU, 40, Color(0.85, 0.7, 0.35), 3.0, true)
+	var c := Vector2(640, 58)
+	_brush(560, 16, 720, 100, 77, Color(INK, 0.55), true)
 	var s := "%02d" % fight.time_left
 	if Game.mode == "training":
 		s = "∞"
 	var col := Color(1, 1, 1)
 	if fight.time_left <= 10 and Game.mode != "training":
-		col = Color(1, 0.4, 0.3)
-	_text(font, c + Vector2(-60, 20), s, 56, col, HORIZONTAL_ALIGNMENT_CENTER, 120.0, 8)
+		col = Color(1, 0.4, 0.3).lerp(Color(1, 1, 1), 0.5 + 0.5 * sin(t * 12.0))
+	_text(font, c + Vector2(-90, 30), s, 84, col, HORIZONTAL_ALIGNMENT_CENTER, 180.0, 12)
+	_text(font, c + Vector2(-40, 76), "VS", 26, Color(1, 1, 1, 0.25), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 4)
 
 
+## The Grand Strike gauge: five segments of POW; full means RAGE MAX and super ready.
 func _draw_rage(font: Font, f, i: int) -> void:
-	var w := 300.0
-	var h := 16.0
-	var y := 680.0
+	var w := 330.0
+	var h := 18.0
+	var y := 672.0
 	var x0 := 60.0 if i == 0 else 1280.0 - 60.0 - w
-	draw_rect(Rect2(x0 - 3, y - 3, w + 6, h + 6), Color(0.08, 0.05, 0.06))
-	draw_rect(Rect2(x0, y, w, h), Color(0.2, 0.08, 0.08))
+	if i == 0:
+		_brush(x0 - 30, y - 12, x0 + w + 10, y + h + 10, 91, Color(INK, 0.85), true)
+	else:
+		_brush(x0 - 10, y - 12, x0 + w + 30, y + h + 10, 92, Color(INK, 0.85), false)
 	var r: float = f.rage / 100.0
 	var full: bool = f.rage_mode > 0
-	var col := Color(0.95, 0.35, 0.1)
-	if full:
-		col = Color(1, 0.15, 0.1).lerp(Color(1, 0.9, 0.3), 0.5 + 0.5 * sin(t * 14.0))
-	if i == 0:
-		draw_rect(Rect2(x0, y, w * r, h), col)
-	else:
-		draw_rect(Rect2(x0 + w * (1.0 - r), y, w * r, h), col)
-	var label := "RAGE MAX!" if full else "POW"
-	var lx := x0 if i == 0 else x0 + w - 200.0
+	var segs := 5
+	var gap := 5.0
+	var sw := (w - gap * (segs - 1)) / segs
+	for k in segs:
+		var kk := k if i == 0 else segs - 1 - k
+		var sx := x0 + kk * (sw + gap)
+		draw_rect(Rect2(sx, y, sw, h), Color(0.16, 0.1, 0.16))
+		var amt := clampf(r * segs - k, 0.0, 1.0)
+		if amt <= 0.0:
+			continue
+		var col := SPIRIT if amt < 1.0 else GOLD
+		if full:
+			col = Color(1, 0.25, 0.1).lerp(Color(1, 0.9, 0.35), 0.5 + 0.5 * sin(t * 14.0 + k))
+		var fw := sw * amt
+		if i == 0:
+			draw_rect(Rect2(sx, y, fw, h), col)
+		else:
+			draw_rect(Rect2(sx + sw - fw, y, fw, h), col)
+		draw_rect(Rect2(sx, y, sw, h * 0.35), Color(1, 1, 1, 0.18))
+	var label := "RAGE MAX!" if full else "GRAND STRIKE"
+	var lx := x0 if i == 0 else x0 + w - 300.0
 	var al := HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
-	_text(font, Vector2(lx, y - 8), label, 26 if full else 20, Color(1, 0.9, 0.5) if full else Color(1, 1, 1, 0.85), al, 200.0, 6)
+	_text(font, Vector2(lx, y - 10), label, 26 if full else 20, Color(1, 0.9, 0.5) if full else Color(1, 1, 1, 0.9), al, 300.0, 6)
 	if full:
-		var hint := "SUPER READY"
-		_text(font, Vector2(x0 if i == 0 else x0 + w - 200.0, y - 34), hint, 18, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)), al, 200.0, 5)
+		_text(font, Vector2(x0 if i == 0 else x0 + w - 300.0, y - 38), "SUPER READY", 18, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)), al, 300.0, 5)
 
 
 func _draw_banner(font: Font, b: Dictionary) -> void:
