@@ -30,6 +30,7 @@ func setup(f, d: Dictionary) -> void:
 	hp = int(d.get("hp", 1))
 	hits_left = int(d.get("hits", 1))
 	r = float(d.get("r", 30.0))
+	scale = Vector2.ONE * Fighter.SCALE
 	kind = String(d.get("type", "wind"))
 	size = float(d.get("size", 1.0))
 	hit = CharData.HIT_DEFAULTS.duplicate()

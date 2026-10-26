@@ -69,7 +69,7 @@ func _ready() -> void:
 		var keep: PackedStringArray = String(args.only).split(",")
 		list = list.filter(func(e): return e[0] in keep)
 	var sc := float(args.get("scale", "0.55"))
-	var cols := int(6 * 0.55 / sc)
+	var cols := maxi(1, int(6 * 0.55 / sc))
 	for i in list.size():
 		var r := Rig.new()
 		r.cd = cd
@@ -77,7 +77,7 @@ func _ready() -> void:
 		var cw := 210.0 * sc / 0.55
 		var chh := 330.0 * sc / 0.55
 		var rows := int(ceil(list.size() / float(cols)))
-		r.position = Vector2(cw * 0.5 + (i % cols) * cw, 690.0 - (rows - 1 - i / cols) * chh)
+		r.position = Vector2(cw * 0.5 + (i % cols) * cw, 690.0 - (rows - 1 - i / cols) * chh + float(args.get("oy", "0")))
 		r.scale = Vector2(sc, sc)
 		add_child(r)
 		r.set_pose(list[i][1], true)

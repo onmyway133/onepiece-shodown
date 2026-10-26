@@ -11,7 +11,7 @@ const Menu := preload("res://scripts/ui/menu.gd")
 const HALF := 1100.0
 const WALL := 1040.0
 const MAX_SEP := 880.0
-const PUSH_W := 34.0
+const PUSH_W := 40.0
 
 
 class Human:
@@ -418,7 +418,7 @@ func _projectile_hits() -> void:
 			var b = projectiles[j]
 			if a.dead or b.dead or a.owner_f == b.owner_f:
 				continue
-			if a.position.distance_to(b.position) < (a.r + b.r) * 0.8:
+			if a.position.distance_to(b.position) < (a.r + b.r) * 0.8 * Fighter.SCALE:
 				a.hp -= 1
 				b.hp -= 1
 				fx.spark((a.position + b.position) * 0.5, "heavy", 1)
@@ -435,7 +435,7 @@ func _projectile_hits() -> void:
 			continue
 		for c in o.hurt_world():
 			var res := seg_dist(p.position, p.position, c[0], c[1])
-			if res[0] < p.r + c[2]:
+			if res[0] < p.r * Fighter.SCALE + c[2]:
 				p.on_hit()
 				_apply_hit(p.owner_f, o, p.hit, res[1], p.position.x - p.vel.x * 3.0, true)
 				break
@@ -592,7 +592,7 @@ func _camera() -> void:
 	var vis_half := 640.0 / z
 	var tx := clampf(mid, -HALF + vis_half, HALF - vis_half)
 	var top := minf(f1.position.y, f2.position.y)
-	var ty := -280.0 / z + minf(0.0, top + 120.0) * 0.35
+	var ty := -300.0 / z + minf(0.0, top + 120.0) * 0.35
 	var cz := lerpf(cam.zoom.x, z, 0.12)
 	cam.zoom = Vector2(cz, cz)
 	cam.position = Vector2(lerpf(cam.position.x, tx, 0.2), lerpf(cam.position.y, ty, 0.15))

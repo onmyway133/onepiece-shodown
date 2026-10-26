@@ -14,10 +14,10 @@ func setup() -> void:
 	dims.thigh = 58.0
 	dims.shin = 60.0
 	dims.torso = 82.0
-	dims.head = 26.0
+	dims.head = 23.5
 	dims.ua = 43.0
 	dims.fa = 41.0
-	dims.chest = 1.25
+	dims.chest = 1.36
 	dims.limb = 1.1
 	dims.sword = 124.0
 	col.skin = Color("e2b083")
@@ -174,12 +174,12 @@ func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -
 func draw_head_extra(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	# third sword held in the mouth (Shusui, black handle)
 	var R: float = dims.head
-	cv.draw_set_transform(J.head, J.head_ang, Vector2.ONE)
+	xf(cv, J.head, J.head_ang)
 	var m := Vector2(R * 0.72, R * 0.55)
 	var ang := deg_to_rad(float(p.get("ma", 8.0)))
 	var v := Vector2(cos(ang), sin(ang))
 	_draw_blade(cv, m - v * 4.0, v, 92.0, Color("26202a"), st, 12.0)
-	cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	xf_reset(cv)
 
 
 func draw_sword(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:

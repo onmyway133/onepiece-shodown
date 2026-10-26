@@ -5,6 +5,8 @@ extends Node2D
 
 const Rig := preload("res://scripts/fight/rig.gd")
 const GRAVITY := 0.95
+## Fighters are drawn and collide at this size relative to their rig units.
+const SCALE := 1.22
 const NEUTRAL := ["idle", "walk_f", "walk_b", "crouch", "guard_hold"]
 const RAGE_TIME := 720
 
@@ -146,7 +148,7 @@ func on_ground() -> bool:
 
 
 func world_point(p: Vector2) -> Vector2:
-	return position + Vector2(p.x * facing, p.y)
+	return position + Vector2(p.x * facing, p.y) * SCALE
 
 
 func set_state(s: String) -> void:
@@ -231,13 +233,13 @@ func _refresh() -> void:
 				trail.pop_front()
 	elif trail.size() > 0 and hitstop == 0:
 		trail.pop_front()
-	rig.scale.x = facing
+	rig.scale = Vector2(facing * SCALE, SCALE)
 	rig.pose = pose
 	rig.J = J
 	var tint: Color = cd.tint_for(pose)
 	if rage_mode > 0 and tint.a == 0.0:
 		tint = Color(1.0, 0.1, 0.05, 0.12 + 0.08 * sin(time * 12.0))
-	rig.st = {"flash": flash, "tint": tint, "time": time, "rage": rage_mode > 0}
+	rig.st = {"flash": flash, "tint": tint, "time": time, "rage": rage_mode > 0, "vx": vel.x * facing, "vy": vel.y, "ground": -position.y / SCALE}
 	rig.queue_redraw()
 
 
@@ -521,14 +523,14 @@ func active_hits() -> Array:
 			continue
 		if mf >= int(h.f[0]) and mf <= int(h.f[1]):
 			var seg := cd.hit_seg(h, J)
-			out.append({"h": h, "a": world_point(seg[0]), "b": world_point(seg[1]), "r": seg[2]})
+			out.append({"h": h, "a": world_point(seg[0]), "b": world_point(seg[1]), "r": seg[2] * SCALE})
 	return out
 
 
 func hurt_world() -> Array:
 	var out := []
 	for c in cd.hurt_caps(J):
-		out.append([world_point(c[0]), world_point(c[1]), c[2]])
+		out.append([world_point(c[0]), world_point(c[1]), c[2] * SCALE])
 	return out
 
 

@@ -13,10 +13,10 @@ func setup() -> void:
 	dims.thigh = 58.0
 	dims.shin = 58.0
 	dims.torso = 80.0
-	dims.head = 25.0
+	dims.head = 23.0
 	dims.ua = 42.0
 	dims.fa = 40.0
-	dims.chest = 1.18
+	dims.chest = 1.3
 	dims.limb = 1.04
 	col.skin = Color("e7b07e")
 	col.hair = Color("1a1414")

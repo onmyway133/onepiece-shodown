@@ -284,6 +284,21 @@ func trail_points(seg: String, J: Dictionary) -> Array:
 
 # ---------------------------------------------------------------- drawing helpers
 
+## Stage rim light (alpha is the strength). The fight sets it for each stage.
+static var rim := Color(1.0, 0.82, 0.6, 0.45)
+## Rotation of the current draw transform, so the light keeps one screen direction.
+var _rot := 0.0
+
+
+func xf(cv: CanvasItem, pos: Vector2, ang: float) -> void:
+	cv.draw_set_transform(pos, ang, Vector2.ONE)
+	_rot = ang
+
+
+func xf_reset(cv: CanvasItem) -> void:
+	xf(cv, Vector2.ZERO, 0.0)
+
+
 static func capsule(a: Vector2, b: Vector2, ra: float, rb: float, n := 7) -> PackedVector2Array:
 	var d := b - a
 	var ang := 0.0
@@ -313,6 +328,42 @@ static func outline(cv: CanvasItem, pts: PackedVector2Array, w := 2.4, c := OUTL
 	cv.draw_polyline(closed, c, w, true)
 
 
+## Points given in a local frame (x along u, y along v), scaled by k.
+static func local_pts(o: Vector2, u: Vector2, v: Vector2, k: float, arr: Array) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for q in arr:
+		pts.append(o + u * float(q[0]) * k + v * float(q[1]) * k)
+	return pts
+
+
+## Muscle-shaped limb outline from a to b. front and back are (u, bulge):
+## where along the bone the muscle peaks and how much it swells the radius.
+static func muscle(a: Vector2, b: Vector2, ra: float, rb: float, front := Vector2(0.4, 0.0), back := Vector2(0.4, 0.0), n := 7) -> PackedVector2Array:
+	var d := b - a
+	var length := d.length()
+	if length < 0.01:
+		d = Vector2.DOWN
+	else:
+		d /= length
+	var nf := Vector2(d.y, -d.x)
+	var pts := PackedVector2Array()
+	for i in n + 1:
+		var u := float(i) / n
+		var g := exp(-pow((u - front.x) / 0.26, 2.0))
+		pts.append(a + d * length * u + nf * lerpf(ra, rb, u) * (1.0 + front.y * g))
+	for i in range(1, 6):
+		var t := PI * float(i) / 6.0
+		pts.append(b + (nf * cos(t) + d * sin(t)) * rb)
+	for i in range(n, -1, -1):
+		var u := float(i) / n
+		var g := exp(-pow((u - back.x) / 0.26, 2.0))
+		pts.append(a + d * length * u - nf * lerpf(ra, rb, u) * (1.0 + back.y * g))
+	for i in range(1, 6):
+		var t := PI * float(i) / 6.0
+		pts.append(a + (-nf * cos(t) - d * sin(t)) * ra)
+	return pts
+
+
 func fc(c: Color, st: Dictionary) -> Color:
 	var out := c
 	if st.get("far", false):
@@ -327,7 +378,29 @@ func fc(c: Color, st: Dictionary) -> Color:
 	return out
 
 
-## Filled, cel shaded polygon with an outline.
+## Shadow tone: darker, slightly cooler and more saturated.
+static func shadow_of(c: Color) -> Color:
+	var s := c.darkened(0.32).lerp(Color(0.22, 0.1, 0.34), 0.14)
+	s.a = c.a
+	return s
+
+
+static func _shift(pts: PackedVector2Array, v: Vector2) -> PackedVector2Array:
+	var out := pts.duplicate()
+	for i in out.size():
+		out[i] += v
+	return out
+
+
+static func _fill(cv: CanvasItem, polys: Array, c: Color) -> void:
+	for q in polys:
+		var poly: PackedVector2Array = q
+		if poly.size() >= 3 and not Geometry2D.triangulate_polygon(poly).is_empty():
+			cv.draw_colored_polygon(poly, c)
+
+
+## Filled polygon with cel shading (shadow, lit and highlight bands), a stage
+## colored rim light on the shadow edge, and an ink outline.
 func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, shade := true, w := 2.4) -> void:
 	if pts.size() < 3:
 		return
@@ -335,24 +408,27 @@ func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, sh
 	if Geometry2D.triangulate_polygon(pts).is_empty():
 		outline(cv, pts, w)
 		return
-	if shade:
-		cv.draw_colored_polygon(pts, base.darkened(0.28))
-		var cen := Vector2.ZERO
-		for p in pts:
-			cen += p
-		cen /= pts.size()
-		var inner := PackedVector2Array()
-		for p in pts:
-			var v := p - cen
-			var l := v.length()
-			var s := maxf(l - 3.2, l * 0.55)
-			inner.append(cen + v.normalized() * s + LIGHT * 1.6)
-		if Geometry2D.triangulate_polygon(inner).is_empty():
-			cv.draw_colored_polygon(pts, base)
-		else:
-			cv.draw_colored_polygon(inner, base)
-	else:
+	if not shade:
 		cv.draw_colored_polygon(pts, base)
+		outline(cv, pts, w)
+		return
+	var lo := pts[0]
+	var hi := pts[0]
+	for q in pts:
+		lo = lo.min(q)
+		hi = hi.max(q)
+	var ext := minf(hi.x - lo.x, hi.y - lo.y) * 0.5
+	var ld := LIGHT.rotated(-_rot)
+	cv.draw_colored_polygon(pts, shadow_of(base))
+	_fill(cv, Geometry2D.intersect_polygons(pts, _shift(pts, ld * clampf(ext * 0.55, 2.0, 11.0))), base)
+	if ext > 5.0:
+		var hl := base.lerp(Color(1.0, 0.98, 0.92), 0.22)
+		hl.a = base.a
+		_fill(cv, Geometry2D.clip_polygons(pts, _shift(pts, -ld * clampf(ext * 0.2, 1.4, 4.0))), hl)
+	if rim.a > 0.0 and ext > 3.5:
+		var rc := base.lerp(Color(rim.r, rim.g, rim.b), rim.a)
+		rc.a = base.a
+		_fill(cv, Geometry2D.clip_polygons(pts, _shift(pts, ld * 2.4)), rc)
 	outline(cv, pts, w)
 
 
@@ -361,10 +437,60 @@ func limb(cv: CanvasItem, a: Vector2, b: Vector2, ra: float, rb: float, c: Color
 	shape(cv, capsule(a, b, ra * lim, rb * lim), c, st)
 
 
+## Loose cloth tube (sleeve, trouser leg) with a flared hem and fold lines.
+func cloth(cv: CanvasItem, a: Vector2, b: Vector2, ra: float, rb: float, c: Color, st: Dictionary, flare := 1.12, folds := 2, seed := 0) -> void:
+	shape(cv, muscle(a, b, ra, rb * flare, Vector2(0.55, 0.05), Vector2(0.5, 0.07), 6), c, st)
+	var d := b - a
+	var length := d.length()
+	if length < 6.0 or folds <= 0:
+		return
+	d /= length
+	var nf := Vector2(d.y, -d.x)
+	var fcol := shadow_of(fc(c, st)).darkened(0.25)
+	for i in folds:
+		var u := 0.3 + 0.45 * (float(i) + 0.5) / folds
+		var side := 1.0 if (i + seed) % 2 == 0 else -1.0
+		var r := lerpf(ra, rb, u)
+		var p0 := a + d * length * u + nf * side * r * 0.92
+		var p1 := p0 - nf * side * r * 0.8 + d * minf(length * 0.12, 9.0)
+		var pm := p0.lerp(p1, 0.5) - d * 2.0
+		cv.draw_polyline(PackedVector2Array([p0, pm, p1]), fcol, 1.5, true)
+
+
+## A ribbon (sash end, bandana tail, coat tail) hanging from root. It sways with
+## time and blows back when the fighter moves. down_ang uses the dir() convention.
+func flutter(cv: CanvasItem, root: Vector2, down_ang: float, length: float, w0: float, w1: float, c: Color, st: Dictionary, phase := 0.0, segs := 5) -> void:
+	var tt: float = st.get("time", 0.0)
+	var vx: float = clampf(st.get("vx", 0.0), -14.0, 14.0)
+	var vy: float = clampf(st.get("vy", 0.0), -20.0, 20.0)
+	var centers := [root]
+	var ang := down_ang
+	var p := root
+	for i in segs:
+		var u := float(i + 1) / segs
+		ang += (-vx * 1.6 + vy * 0.8 + sin(tt * 6.5 + phase + u * 2.6) * 6.0) * u
+		ang = clampf(ang, down_ang - 110.0, down_ang + 60.0)
+		p += dir(ang) * length / segs
+		centers.append(p)
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for i in centers.size():
+		var a: Vector2 = centers[maxi(i - 1, 0)]
+		var b: Vector2 = centers[mini(i + 1, centers.size() - 1)]
+		var t := (b - a).normalized()
+		var nrm := Vector2(-t.y, t.x)
+		var w := lerpf(w0, w1, float(i) / segs)
+		left.append(centers[i] + nrm * w)
+		right.append(centers[i] - nrm * w)
+	right.reverse()
+	shape(cv, left + right, c, st, true, 2.0)
+
+
 # ---------------------------------------------------------------- renderer
 
-## st: {flash, tint, time, far, aura, fighter}
+## st: {flash, tint, time, far, rage, vx, vy}
 func draw(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
+	_rot = 0.0
 	draw_back_fx(cv, J, p, st)
 	var far := st.duplicate()
 	far.far = true
@@ -377,27 +503,74 @@ func draw(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	draw_front_fx(cv, J, p, st)
 
 
+func hand_kind(p: Dictionary, s: String) -> String:
+	if p.has("hand_" + s):
+		return String(p["hand_" + s])
+	if has_swords:
+		return "fist"
+	if String(p.get("face", "")) in ["hurt", "ko"]:
+		return "open"
+	return "fist"
+
+
 func draw_arm(cv: CanvasItem, J: Dictionary, p: Dictionary, s: String, st: Dictionary) -> void:
 	var sh: Vector2 = J.shoulder + Vector2(3.0 if s == "f" else -3.0, 2.0).rotated(J.torso_ang)
 	var el: Vector2 = J["elbow_" + s]
 	var ha: Vector2 = J["hand_" + s]
 	if has_swords and s == "b":
 		draw_sword(cv, J, p, s, st)
-	var upper: Color = col.skin
-	var lower: Color = col.skin
-	match String(style.sleeves):
-		"short": upper = col.get("sleeve", col.top)
-		"long":
-			upper = col.get("sleeve", col.top)
-			lower = upper
-	limb(cv, sh, el, 11.0, 9.5, upper, st)
-	limb(cv, el, ha, 9.5, 8.0, lower, st)
+	var k: float = dims.limb
+	var sleeve: Color = col.get("sleeve", col.top)
+	var sl := String(style.sleeves)
+	# upper arm
+	if sl == "long":
+		cloth(cv, sh, el, 12.5 * k, 11.0 * k, sleeve, st, 1.05, 1, 0)
+	else:
+		shape(cv, muscle(sh, el, 11.0 * k, 9.0 * k, Vector2(0.48, 0.17), Vector2(0.32, 0.13)), col.skin, st)
+		if sl == "short":
+			cloth(cv, sh, sh.lerp(el, 0.58), 13.0 * k, 12.0 * k, sleeve, st, 1.14, 1, 1)
+		else:
+			# deltoid cap
+			var dd := (el - sh).normalized()
+			shape(cv, ellipse(sh + dd * 7.0 * k, 13.5 * k, 10.5 * k, 14, dd.angle()), col.skin, st)
+	# forearm
+	if sl == "long":
+		cloth(cv, el, ha, 11.0 * k, 9.5 * k, sleeve, st, 1.12, 1, 1)
+	else:
+		shape(cv, muscle(el, ha, 9.8 * k, 7.0 * k, Vector2(0.22, 0.12), Vector2(0.2, 0.24)), col.skin, st)
 	draw_arm_extra(cv, J, p, s, st)
-	# fist
-	var fd := (ha - el).normalized()
-	shape(cv, ellipse(ha + fd * 4.0, 10.5 * dims.limb, 9.0 * dims.limb, 12, fd.angle()), col.get("glove", col.skin), st)
+	draw_hand(cv, el, ha, hand_kind(p, s), col.get("glove", col.skin), st)
 	if has_swords and s == "f":
 		draw_sword(cv, J, p, s, st)
+
+
+## Hands: "fist" (also used to grip swords) or "open".
+func draw_hand(cv: CanvasItem, el: Vector2, ha: Vector2, kind: String, c: Color, st: Dictionary) -> void:
+	var u := (ha - el).normalized()
+	if u == Vector2.ZERO:
+		u = Vector2.DOWN
+	var v := Vector2(u.y, -u.x)
+	var k: float = dims.limb
+	var o := ha - u * 3.0 * k
+	var line := shadow_of(fc(c, st)).darkened(0.3)
+	if kind == "open":
+		for y in [-5.4, -1.8, 1.8, 5.4]:
+			var a := local_pts(o, u, v, k, [[9.0, y]])[0]
+			var b := local_pts(o, u, v, k, [[19.0 - absf(y) * 0.5, y * 1.15]])[0]
+			shape(cv, capsule(a, b, 2.3 * k, 1.8 * k, 4), c, st, false, 1.6)
+		shape(cv, local_pts(o, u, v, k, [[-1, -7], [7, -8], [11, -6.5], [11, 6.5], [7, 8], [-1, 7]]), c, st, true, 2.0)
+		var ta := local_pts(o, u, v, k, [[3.0, 6.0]])[0]
+		var tb := local_pts(o, u, v, k, [[11.0, 11.5]])[0]
+		shape(cv, capsule(ta, tb, 3.0 * k, 2.2 * k, 4), c, st, false, 1.6)
+		return
+	var fist := local_pts(o, u, v, k, [[-2, -7.5], [5, -9], [12, -8.6], [16, -5.5], [17, 0], [16, 5.5], [12, 8.6], [4, 9], [-2, 7.5]])
+	shape(cv, fist, c, st, true, 2.2)
+	for y in [-4.6, -0.6, 3.4]:
+		var a := local_pts(o, u, v, k, [[9.5, y], [15.5, y + 0.3]])
+		cv.draw_line(a[0], a[1], line, 1.3, true)
+	var t0 := local_pts(o, u, v, k, [[2.5, 6.0]])[0]
+	var t1 := local_pts(o, u, v, k, [[11.0, 3.5]])[0]
+	shape(cv, capsule(t0, t1, 3.4 * k, 2.8 * k, 4), c, st, false, 1.6)
 
 
 func draw_leg(cv: CanvasItem, J: Dictionary, p: Dictionary, s: String, st: Dictionary) -> void:
@@ -405,147 +578,271 @@ func draw_leg(cv: CanvasItem, J: Dictionary, p: Dictionary, s: String, st: Dicti
 	var kn: Vector2 = J["knee_" + s]
 	var ft: Vector2 = J["foot_" + s]
 	var toe: Vector2 = J["toe_" + s]
+	var k: float = dims.limb
 	var pants: Color = col.pants
-	var shin_c: Color = col.skin
-	if style.pants == "long":
-		shin_c = pants
+	var seed := 0 if s == "f" else 1
 	# foot first so the shin overlaps it
-	var foot_c: Color = col.shoes
-	if style.feet == "sandal":
-		foot_c = col.skin
-	shape(cv, capsule(ft, toe, 8.0, 6.5), foot_c, st)
-	if style.feet == "sandal":
-		var sole := capsule(ft + (ft - J["knee_" + s]).normalized() * 6.0, toe + (ft - J["knee_" + s]).normalized() * 5.0, 3.0, 3.0)
-		shape(cv, sole, col.shoes, st, false, 1.6)
-	limb(cv, kn, ft, 11.0, 8.5, shin_c, st)
-	if style.feet == "boot":
-		limb(cv, kn.lerp(ft, 0.45), ft, 10.5, 9.5, col.shoes, st)
-	if style.pants == "knee":
-		limb(cv, hip, kn.lerp(ft, 0.25), 16.0, 14.0, pants, st)
-	elif style.pants == "short":
-		limb(cv, hip, kn, 16.0, 15.0, pants, st)
+	draw_foot(cv, kn, ft, toe, st)
+	if style.pants == "long":
+		cloth(cv, kn, ft, 12.5 * k, 10.0 * k, pants, st, 1.22, 2, seed)
 	else:
-		limb(cv, hip, kn, 15.0, 12.0, pants, st)
+		shape(cv, muscle(kn, ft, 11.0 * k, 7.6 * k, Vector2(0.3, 0.05), Vector2(0.3, 0.34)), col.skin, st)
+	if style.feet == "boot":
+		var top := kn.lerp(ft, 0.4)
+		shape(cv, muscle(top, ft, 11.5 * k, 10.0 * k, Vector2(0.5, 0.04), Vector2(0.3, 0.08), 4), col.shoes, st)
+		var d := (ft - top).normalized()
+		var nf := Vector2(d.y, -d.x)
+		cv.draw_line(top + nf * 11.0 * k + d * 4.0, top - nf * 11.0 * k + d * 4.0, fc(col.shoes, st).lightened(0.25), 2.0, true)
+	match String(style.pants):
+		"knee":
+			cloth(cv, hip, kn.lerp(ft, 0.25), 17.0 * k, 14.5 * k, pants, st, 1.12, 2, seed)
+		"short":
+			cloth(cv, hip, kn, 16.5 * k, 15.0 * k, pants, st, 1.1, 2, seed)
+		_:
+			cloth(cv, hip, kn, 16.0 * k, 12.5 * k, pants, st, 1.0, 2, seed)
 	if style.get("cuff", false):
 		var c_end := kn
 		if style.pants == "knee":
 			c_end = kn.lerp(ft, 0.25)
 		var d := (c_end - hip).normalized()
-		var n: Vector2 = Vector2(-d.y, d.x) * 16.0 * float(dims.limb)
-		var band := PackedVector2Array([c_end - d * 6.0 + n, c_end + d * 4.0 + n * 1.08, c_end + d * 4.0 - n * 1.08, c_end - d * 6.0 - n])
-		shape(cv, band, col.get("cuff_c", Color.WHITE), st, false, 2.0)
+		var n: Vector2 = Vector2(-d.y, d.x) * 16.5 * k * 1.1
+		var band := PackedVector2Array([c_end - d * 7.0 + n, c_end + d * 4.0 + n * 1.08, c_end + d * 4.0 - n * 1.08, c_end - d * 7.0 - n])
+		shape(cv, band, col.get("cuff_c", Color.WHITE), st, true, 2.0)
 	draw_leg_extra(cv, J, p, s, st)
+
+
+func draw_foot(cv: CanvasItem, kn: Vector2, ft: Vector2, toe: Vector2, st: Dictionary) -> void:
+	var u := (toe - ft).normalized()
+	if u == Vector2.ZERO:
+		u = Vector2.RIGHT
+	var v := Vector2(-u.y, u.x)
+	if v.dot(ft - kn) < 0.0:
+		v = -v
+	var k: float = dims.limb
+	var F: float = ft.distance_to(toe) / k
+	match String(style.feet):
+		"sandal":
+			shape(cv, local_pts(ft, u, v, k, [[-9, 5.5], [F + 8, 5.0], [F + 8, 9.5], [-9, 9.5]]), col.shoes, st, false, 1.8)
+			shape(cv, local_pts(ft, u, v, k, [[-7, -4], [-8.5, 2], [-6, 6], [4, 6.5], [F * 0.7, 6], [F + 4, 5.5], [F + 7, 2.5], [F + 5.5, -1.5], [F * 0.6, -3.5], [6, -7], [-2, -8]]), col.skin, st, true, 2.0)
+			var line := shadow_of(fc(col.skin, st)).darkened(0.2)
+			for i in 2:
+				var a := local_pts(ft, u, v, k, [[F + 1.0 + i * 2.5, -1.0 + i * 1.5], [F + 2.5 + i * 2.5, 4.5]])
+				cv.draw_line(a[0], a[1], line, 1.2, true)
+			var strap := local_pts(ft, u, v, k, [[2, -6.5], [F * 0.55, 5.5]])
+			cv.draw_line(strap[0], strap[1], fc(col.shoes, st).darkened(0.1), 3.0, true)
+		"shoe":
+			shape(cv, local_pts(ft, u, v, k, [[-9, -5], [-10, 3], [-8, 8], [F + 6, 8], [F + 11, 5], [F + 11, 2], [F + 4, -2.5], [F * 0.5, -5.5], [5, -8.5], [-3, -9]]), col.shoes, st, true, 2.2)
+			var sole := local_pts(ft, u, v, k, [[-9, 6], [F + 9, 6]])
+			cv.draw_line(sole[0], sole[1], fc(col.shoes, st).lightened(0.3), 1.5, true)
+		_:
+			shape(cv, local_pts(ft, u, v, k, [[-9, -6], [-10, 3], [-8, 8.5], [F + 6, 8.5], [F + 10, 5], [F + 9, 0], [F + 3, -3.5], [F * 0.5, -6.5], [5, -9.5], [-3, -10]]), col.shoes, st, true, 2.2)
+			var sole := local_pts(ft, u, v, k, [[-9, 5.5], [F + 9, 5.5]])
+			cv.draw_line(sole[0], sole[1], fc(col.shoes, st).darkened(0.45), 2.4, true)
 
 
 func torso_pts(L: float, ch: float) -> PackedVector2Array:
 	return PackedVector2Array([
-		Vector2(-15, 8) * Vector2(ch, 1), Vector2(16, 8) * Vector2(ch, 1),
-		Vector2(14 * ch, -L * 0.35), Vector2(20 * ch, -L * 0.68), Vector2(15 * ch, -L - 3),
-		Vector2(-16 * ch, -L + 1), Vector2(-20 * ch, -L * 0.6), Vector2(-15 * ch, -L * 0.28),
+		Vector2(-15 * ch, 8), Vector2(16 * ch, 8),
+		Vector2(15 * ch, -L * 0.2), Vector2(14.5 * ch, -L * 0.38),
+		Vector2(19 * ch, -L * 0.6), Vector2(20 * ch, -L * 0.75), Vector2(17.5 * ch, -L * 0.92), Vector2(13 * ch, -L - 2.5),
+		Vector2(-12 * ch, -L - 1), Vector2(-19 * ch, -L * 0.88), Vector2(-21 * ch, -L * 0.64), Vector2(-16.5 * ch, -L * 0.36),
+		Vector2(-15 * ch, -L * 0.12),
 	])
 
 
 func draw_torso(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	var L: float = dims.torso
 	var ch: float = dims.chest
-	cv.draw_set_transform(J.hip, J.torso_ang, Vector2.ONE)
+	xf(cv, J.hip, J.torso_ang)
 	var pts := torso_pts(L, ch)
 	var base: Color = col.skin
 	if style.top in ["shirt", "suit"]:
 		base = col.top
-	shape(cv, pts, base, st)
+	shape(cv, pts, base, st, true, 2.6)
 	if style.top == "none" or style.top == "vest":
-		# simple muscle lines
-		cv.draw_polyline(PackedVector2Array([Vector2(4, -L * 0.62), Vector2(14 * ch, -L * 0.55)]), fc(col.skin, st).darkened(0.35), 1.6, true)
-		cv.draw_polyline(PackedVector2Array([Vector2(6, -L * 0.36), Vector2(8, -L * 0.18)]), fc(col.skin, st).darkened(0.3), 1.4, true)
+		draw_anatomy(cv, L, ch, st)
+	elif style.top == "shirt":
+		var fold := shadow_of(fc(base, st)).darkened(0.1)
+		cv.draw_polyline(PackedVector2Array([Vector2(16 * ch, -L * 0.55), Vector2(8 * ch, -L * 0.45), Vector2(2 * ch, -L * 0.42)]), fold, 1.5, true)
+		cv.draw_polyline(PackedVector2Array([Vector2(-17 * ch, -L * 0.72), Vector2(-8 * ch, -L * 0.6)]), fold, 1.5, true)
 	draw_torso_extra(cv, J, p, st, L, ch)
 	if col.sash.a > 0.0:
 		var sash := PackedVector2Array([Vector2(-17 * ch, 9), Vector2(18 * ch, 9), Vector2(16 * ch, -L * 0.22), Vector2(-17 * ch, -L * 0.2)])
 		shape(cv, sash, col.sash, st)
-	cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var fold := shadow_of(fc(col.sash, st))
+		cv.draw_line(Vector2(-15 * ch, -L * 0.08), Vector2(14 * ch, -L * 0.12), fold, 1.5, true)
+		if style.get("sash_tail", true):
+			flutter(cv, Vector2(-14 * ch, -L * 0.06), -14.0, 34.0, 6.0, 4.0, col.sash, st, 0.0, 4)
+			flutter(cv, Vector2(-12 * ch, -L * 0.04), 6.0, 26.0, 5.5, 3.5, col.sash, st, 1.7, 4)
+	xf_reset(cv)
+
+
+## Pecs, abs and collarbones for bare or open-shirt torsos.
+func draw_anatomy(cv: CanvasItem, L: float, ch: float, st: Dictionary) -> void:
+	var skin := fc(col.skin, st)
+	var sh := shadow_of(skin)
+	var line := sh.darkened(0.2)
+	# shadow under the pecs
+	var pec := PackedVector2Array()
+	for i in 9:
+		var u := float(i) / 8.0
+		pec.append(Vector2(lerpf(3.0, 19.5, u) * ch, -L * (0.6 - 0.07 * sin(u * PI)) - L * 0.04 * u))
+	var under := pec.duplicate()
+	for i in range(8, -1, -1):
+		under.append(pec[i] + Vector2(0, 5.0 + 2.0 * sin(float(i) / 8.0 * PI)))
+	if not Geometry2D.triangulate_polygon(under).is_empty():
+		cv.draw_colored_polygon(under, Color(sh, 0.75))
+	cv.draw_polyline(pec, line, 1.7, true)
+	cv.draw_line(Vector2(3.5 * ch, -L * 0.9), Vector2(3.5 * ch, -L * 0.62), Color(line, 0.7), 1.4, true)
+	# collarbone
+	cv.draw_polyline(PackedVector2Array([Vector2(5 * ch, -L * 0.93), Vector2(11 * ch, -L * 0.9), Vector2(17 * ch, -L * 0.92)]), Color(line, 0.8), 1.4, true)
+	# abs
+	cv.draw_line(Vector2(7 * ch, -L * 0.5), Vector2(8 * ch, -L * 0.14), Color(line, 0.8), 1.4, true)
+	for i in 2:
+		var y := -L * (0.43 - i * 0.13)
+		cv.draw_polyline(PackedVector2Array([Vector2(3 * ch, y + 1.0), Vector2(7.5 * ch, y), Vector2(13 * ch, y + 1.5)]), Color(line, 0.7), 1.3, true)
+	# obliques
+	cv.draw_line(Vector2(14 * ch, -L * 0.36), Vector2(11 * ch, -L * 0.06), Color(line, 0.7), 1.4, true)
 
 
 func draw_head_all(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	var R: float = dims.head
-	limb(cv, J.neck + (J.neck - J.head).normalized() * 6.0, J.head + (J.neck - J.head).normalized() * R * 0.5, 9.0, 9.0, col.skin, st)
+	var nd: Vector2 = (J.neck - J.head).normalized()
+	limb(cv, J.neck + nd * 6.0, J.head + nd * R * 0.5, 9.0, 8.5, col.skin, st)
+	# jaw shadow on the neck
+	cv.draw_colored_polygon(ellipse(J.head + nd * R * 0.82 + Vector2(nd.y, -nd.x) * 2.0, 7.0, 6.0, 10), shadow_of(fc(col.skin, st)))
 	draw_neck_extra(cv, J, p, st)
-	cv.draw_set_transform(J.head, J.head_ang, Vector2.ONE)
+	xf(cv, J.head, J.head_ang)
 	draw_hair_back(cv, R, p, st)
 	draw_face(cv, R, p, st)
 	draw_hair(cv, R, p, st)
 	draw_hat(cv, R, p, st)
-	cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	xf_reset(cv)
 	draw_head_extra(cv, J, p, st)
 
 
 func head_pts(R: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for i in 28:
-		var a := TAU * float(i) / 28.0
-		var chin := pow(maxf(0.0, cos(a - deg_to_rad(62.0))), 6.0)
-		var r := R * (1.0 + 0.3 * chin)
-		pts.append(Vector2(cos(a) * r * 0.94, sin(a) * r * 1.02))
+	for i in 32:
+		var a := TAU * float(i) / 32.0
+		var chin := pow(maxf(0.0, cos(a - deg_to_rad(60.0))), 7.0)
+		var jaw := pow(maxf(0.0, cos(a - deg_to_rad(95.0))), 4.0)
+		var r := R * (1.0 + 0.32 * chin + 0.05 * jaw)
+		pts.append(Vector2(cos(a) * r * 0.95, sin(a) * r * 1.02))
 	return pts
 
 
 func draw_face(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	var face: String = p.get("face", "normal")
+	var skin := fc(col.skin, st)
 	# ear
-	shape(cv, ellipse(Vector2(-R * 0.18, R * 0.08), R * 0.2, R * 0.26, 10), col.skin, st, false)
-	shape(cv, head_pts(R), col.skin, st)
-	cv.draw_arc(Vector2(-R * 0.18, R * 0.08), R * 0.1, -1.0, 2.0, 6, fc(col.skin, st).darkened(0.4), 1.5, true)
+	shape(cv, ellipse(Vector2(-R * 0.16, R * 0.1), R * 0.2, R * 0.27, 12), col.skin, st, false)
+	shape(cv, head_pts(R), col.skin, st, true, 2.6)
+	cv.draw_arc(Vector2(-R * 0.16, R * 0.1), R * 0.1, -1.0, 2.0, 6, shadow_of(skin).darkened(0.25), 1.6, true)
 	var ink := OUTLINE
-	var eye := Vector2(R * 0.5, -R * 0.02)
+	var eye := Vector2(R * 0.54, R * 0.04)
 	match face:
 		"hurt":
-			cv.draw_polyline(PackedVector2Array([eye + Vector2(-R * 0.12, -R * 0.12), eye + Vector2(R * 0.08, 0), eye + Vector2(-R * 0.12, R * 0.12)]), ink, 2.6, true)
+			cv.draw_polyline(PackedVector2Array([eye + Vector2(-R * 0.14, -R * 0.14), eye + Vector2(R * 0.1, 0), eye + Vector2(-R * 0.14, R * 0.14)]), ink, 3.0, true)
 		"ko":
-			cv.draw_line(eye + Vector2(-R * 0.1, -R * 0.1), eye + Vector2(R * 0.1, R * 0.1), ink, 2.6, true)
-			cv.draw_line(eye + Vector2(-R * 0.1, R * 0.1), eye + Vector2(R * 0.1, -R * 0.1), ink, 2.6, true)
+			cv.draw_line(eye + Vector2(-R * 0.12, -R * 0.12), eye + Vector2(R * 0.12, R * 0.12), ink, 2.8, true)
+			cv.draw_line(eye + Vector2(-R * 0.12, R * 0.12), eye + Vector2(R * 0.12, -R * 0.12), ink, 2.8, true)
 		"closed":
-			cv.draw_arc(eye + Vector2(0, -R * 0.04), R * 0.13, 0.3, PI - 0.3, 6, ink, 2.4, true)
+			cv.draw_arc(eye + Vector2(0, -R * 0.05), R * 0.15, 0.3, PI - 0.3, 7, ink, 2.6, true)
 		_:
 			draw_eye(cv, eye, R, face, st)
-	# brow
 	var brow_tilt := 0.0
 	if face in ["angry", "shout", "attack"]:
-		brow_tilt = R * 0.14
+		brow_tilt = R * 0.16
+	elif face == "hurt":
+		brow_tilt = -R * 0.12
 	draw_brow(cv, eye, R, brow_tilt, st)
-	# nose
-	cv.draw_line(Vector2(R * 0.96, R * 0.06), Vector2(R * 1.02, R * 0.2), fc(col.skin, st).darkened(0.45), 1.6, true)
-	# mouth
-	var m := Vector2(R * 0.72, R * 0.56)
-	match face:
-		"shout", "attack", "hurt":
-			var o := PackedVector2Array([m + Vector2(-R * 0.22, -R * 0.08), m + Vector2(R * 0.12, -R * 0.12), m + Vector2(R * 0.08, R * 0.18), m + Vector2(-R * 0.14, R * 0.14)])
-			cv.draw_colored_polygon(o, Color("6b1620"))
-			cv.draw_line(o[0], o[1], Color.WHITE, 2.0, true)
-			outline(cv, o, 1.8)
-		"grin":
-			var g := PackedVector2Array([m + Vector2(-R * 0.3, -R * 0.12), m + Vector2(R * 0.2, -R * 0.12), m + Vector2(R * 0.1, R * 0.14), m + Vector2(-R * 0.2, R * 0.08)])
-			cv.draw_colored_polygon(g, Color.WHITE)
-			cv.draw_line(g[0].lerp(g[3], 0.5), g[1].lerp(g[2], 0.5), Color(0.6, 0.6, 0.6), 1.0, true)
-			outline(cv, g, 1.8)
-		"ko":
-			cv.draw_arc(m + Vector2(0, R * 0.12), R * 0.14, PI + 0.4, TAU - 0.4, 6, ink, 2.0, true)
-		_:
-			cv.draw_line(m + Vector2(-R * 0.2, 0), m + Vector2(R * 0.12, -R * 0.03), ink, 2.0, true)
+	# nose: a small shadow wedge with an ink tip
+	cv.draw_colored_polygon(PackedVector2Array([Vector2(R * 0.9, R * 0.02), Vector2(R * 1.03, R * 0.24), Vector2(R * 0.88, R * 0.26)]), shadow_of(skin))
+	cv.draw_line(Vector2(R * 0.97, R * 0.1), Vector2(R * 1.04, R * 0.24), shadow_of(skin).darkened(0.35), 1.6, true)
+	draw_mouth(cv, R, face, st)
 	draw_face_extra(cv, R, p, st)
 
 
+func draw_mouth(cv: CanvasItem, R: float, face: String, _st: Dictionary) -> void:
+	var m := Vector2(R * 0.72, R * 0.58)
+	var ink := OUTLINE
+	match face:
+		"shout":
+			var o := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.26, -0.12], [0.18, -0.16], [0.16, 0.08], [0.06, 0.26], [-0.18, 0.2]])
+			cv.draw_colored_polygon(o, Color("5a1018"))
+			cv.draw_colored_polygon(local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.1, 0.24], [0.06, 0.14], [0.08, 0.24]]), Color("d0545a"))
+			cv.draw_colored_polygon(local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.24, -0.11], [0.17, -0.15], [0.17, -0.07], [-0.22, -0.04]]), Color.WHITE)
+			outline(cv, o, 2.0)
+		"attack", "hurt":
+			var g := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.26, -0.08], [0.16, -0.12], [0.14, 0.1], [-0.22, 0.1]])
+			cv.draw_colored_polygon(g, Color.WHITE)
+			cv.draw_line(g[0].lerp(g[3], 0.5), g[1].lerp(g[2], 0.5), Color(0.55, 0.5, 0.5), 1.2, true)
+			for i in 3:
+				var x := lerpf(-0.14, 0.08, float(i) / 2.0)
+				var a := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[x, -0.1], [x, 0.1]])
+				cv.draw_line(a[0], a[1], Color(0.55, 0.5, 0.5), 1.0, true)
+			outline(cv, g, 2.0)
+		"grin":
+			var g := PackedVector2Array()
+			for i in 9:
+				var a := lerpf(0.0, PI, float(i) / 8.0)
+				g.append(m + Vector2(-cos(a) * R * 0.3, sin(a) * R * 0.24 - R * 0.1) + Vector2(R * 0.02, 0))
+			cv.draw_colored_polygon(g, Color("5a1018"))
+			var teeth := PackedVector2Array([g[0], g[8], g[8] + Vector2(-R * 0.02, R * 0.08), g[0] + Vector2(R * 0.02, R * 0.08)])
+			cv.draw_colored_polygon(teeth, Color.WHITE)
+			outline(cv, g, 2.0)
+			cv.draw_arc(g[8] + Vector2(R * 0.05, -R * 0.02), R * 0.08, -0.6, 0.9, 5, ink, 1.6, true)
+		"ko":
+			cv.draw_arc(m + Vector2(0, R * 0.14), R * 0.15, PI + 0.4, TAU - 0.4, 6, ink, 2.0, true)
+		"angry":
+			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.22, R * 0.03), m + Vector2(-R * 0.04, -R * 0.02), m + Vector2(R * 0.14, R * 0.02)]), ink, 2.2, true)
+		_:
+			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.2, 0), m + Vector2(-R * 0.02, R * 0.02), m + Vector2(R * 0.13, -R * 0.03)]), ink, 2.0, true)
+
+
 func draw_eye(cv: CanvasItem, eye: Vector2, R: float, face: String, st: Dictionary) -> void:
-	var w := R * 0.15
-	var h := R * 0.25
+	var w := R * 0.19
+	var h := R * 0.31
+	var lid := 0.0
 	if face in ["angry", "shout", "attack"]:
-		h = R * 0.19
-	cv.draw_colored_polygon(ellipse(eye, w, h, 12), Color.WHITE)
-	cv.draw_colored_polygon(ellipse(eye + Vector2(w * 0.35, h * 0.08), w * 0.72, h * 0.8, 12), col.eye)
-	cv.draw_circle(eye + Vector2(w * 0.55, -h * 0.35), R * 0.045, Color.WHITE)
-	cv.draw_line(eye + Vector2(-w * 1.1, -h * 0.95), eye + Vector2(w * 1.3, -h * 0.85), OUTLINE, 3.0, true)
+		lid = 0.38
+	var sc := PackedVector2Array()
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		var y := sin(a) * h
+		if y < 0.0:
+			y *= 1.0 - lid * (0.6 + 0.4 * cos(a))
+		sc.append(eye + Vector2(cos(a) * w, y))
+	cv.draw_colored_polygon(sc, fc(Color(0.98, 0.97, 0.95), st))
+	var ic := eye + Vector2(w * 0.3, h * 0.1)
+	var iris := ellipse(ic, w * 0.66, h * 0.7, 14)
+	var ir := Geometry2D.intersect_polygons(iris, sc)
+	_fill(cv, ir, fc(col.eye, st))
+	if not ir.is_empty():
+		_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(0, h * 0.3), w * 0.55, h * 0.42, 12), ir[0]), fc(col.eye, st).lightened(0.35))
+	_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(w * 0.06, h * 0.04), w * 0.3, h * 0.36, 10), sc), Color(0.04, 0.03, 0.05))
+	cv.draw_circle(ic + Vector2(w * 0.25, -h * 0.3 + lid * h * 0.5), R * 0.06, Color.WHITE)
+	cv.draw_circle(ic + Vector2(-w * 0.25, h * 0.38), R * 0.028, Color(1, 1, 1, 0.85))
+	# upper lash: thick, with a flick at the outer corner
+	var lash := PackedVector2Array()
+	for i in range(8, 17):
+		lash.append(sc[i % 16])
+	lash.append(sc[8] + Vector2(-w * 0.45, -h * 0.25))
+	lash.reverse()
+	cv.draw_polyline(lash, OUTLINE, 3.4, true)
+	cv.draw_line(sc[5], sc[7], Color(OUTLINE, 0.7), 1.4, true)
 
 
 func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictionary) -> void:
-	cv.draw_line(eye + Vector2(-R * 0.22, -R * 0.38 - tilt * 0.4), eye + Vector2(R * 0.24, -R * 0.36 + tilt), fc(col.hair, st).darkened(0.2), 3.2, true)
+	var inner := eye + Vector2(R * 0.26, -R * 0.36 + tilt)
+	var outer := eye + Vector2(-R * 0.24, -R * 0.42 - tilt * 0.35)
+	var d := (inner - outer).normalized()
+	var n := Vector2(-d.y, d.x)
+	var c := fc(col.hair, st).darkened(0.2)
+	var pts := PackedVector2Array([outer + n * 1.2, outer.lerp(inner, 0.5) - n * 2.8, inner - n * 2.4, inner + n * 1.6, outer.lerp(inner, 0.5) + n * 1.6])
+	if not Geometry2D.triangulate_polygon(pts).is_empty():
+		cv.draw_colored_polygon(pts, c)
 
 
 # ---------------------------------------------------------------- hooks
@@ -587,20 +884,42 @@ func draw_sword(_cv: CanvasItem, _J: Dictionary, _p: Dictionary, _s: String, _st
 	pass
 
 
-## Spiky hair helper: a polygon of spikes along an arc of the skull.
-func spikes(cv: CanvasItem, R: float, from_deg: float, to_deg: float, n: int, length: float, c: Color, st: Dictionary, jag := 0.35, center := Vector2.ZERO, seed := 1) -> void:
+## Spiky hair helper: curved clumps of hair along an arc of the skull.
+## sweep leans the tips (degrees), so the hair looks combed back or windblown.
+func spikes(cv: CanvasItem, R: float, from_deg: float, to_deg: float, n: int, length: float, c: Color, st: Dictionary, jag := 0.35, center := Vector2.ZERO, seed := 1, sweep := -12.0) -> void:
 	var pts := PackedVector2Array()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
 	pts.append(center)
-	for i in n * 2 + 1:
-		var u := float(i) / (n * 2)
-		var a := deg_to_rad(lerpf(from_deg, to_deg, u))
-		var r := R * 1.02
-		if i % 2 == 1:
-			r = R + length * (1.0 + rng.randf_range(-jag, jag))
-		pts.append(center + Vector2(cos(a), sin(a)) * r)
+	var tips := []
+	for i in n:
+		var a0 := deg_to_rad(lerpf(from_deg, to_deg, float(i) / n))
+		var a1 := deg_to_rad(lerpf(from_deg, to_deg, float(i + 1) / n))
+		var am := (a0 + a1) * 0.5 + deg_to_rad(sweep + rng.randf_range(-6.0, 6.0))
+		var ln := R + length * (1.0 + rng.randf_range(-jag, jag))
+		var b0 := center + Vector2(cos(a0), sin(a0)) * R * 1.02
+		var b1 := center + Vector2(cos(a1), sin(a1)) * R * 1.02
+		var tip := center + Vector2(cos(am), sin(am)) * ln
+		var tang := Vector2(-sin(am), cos(am)) * (-signf(sweep) * length * 0.16)
+		var c0 := b0.lerp(tip, 0.5) + tang
+		var c1 := tip.lerp(b1, 0.5) + tang
+		if i == 0:
+			pts.append(b0)
+		for k in range(1, 4):
+			var u := float(k) / 4.0
+			pts.append(b0.lerp(c0, u).lerp(c0.lerp(tip, u), u))
+		pts.append(tip)
+		for k in range(1, 4):
+			var u := float(k) / 4.0
+			pts.append(tip.lerp(c1, u).lerp(c1.lerp(b1, u), u))
+		pts.append(b1)
+		tips.append([b0.lerp(b1, 0.5), tip])
 	shape(cv, pts, c, st, true, 2.2)
+	var strand := shadow_of(fc(c, st)).darkened(0.25)
+	for t in tips:
+		var a: Vector2 = t[0]
+		var b: Vector2 = t[1]
+		cv.draw_line(a.lerp(b, 0.15), a.lerp(b, 0.7), strand, 1.3, true)
 
 
 ## Called every frame while fighting so a character can emit particles (steam, flames).
