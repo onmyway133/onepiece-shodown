@@ -401,7 +401,7 @@ static func _fill(cv: CanvasItem, polys: Array, c: Color) -> void:
 
 ## Filled polygon with cel shading (shadow, lit and highlight bands), a stage
 ## colored rim light on the shadow edge, and an ink outline.
-func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, shade := true, w := 2.4) -> void:
+func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, shade := true, w := 2.4, amt := 1.0) -> void:
 	if pts.size() < 3:
 		return
 	var base := fc(c, st)
@@ -420,7 +420,7 @@ func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, sh
 	var ext := minf(hi.x - lo.x, hi.y - lo.y) * 0.5
 	var ld := LIGHT.rotated(-_rot)
 	cv.draw_colored_polygon(pts, shadow_of(base))
-	_fill(cv, Geometry2D.intersect_polygons(pts, _shift(pts, ld * clampf(ext * 0.55, 2.0, 11.0))), base)
+	_fill(cv, Geometry2D.intersect_polygons(pts, _shift(pts, ld * clampf(ext * 0.55 * amt, 2.0, 11.0))), base)
 	if ext > 5.0:
 		var hl := base.lerp(Color(1.0, 0.98, 0.92), 0.22)
 		hl.a = base.a
@@ -716,6 +716,7 @@ func draw_head_all(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary)
 	draw_hair_back(cv, R, p, st)
 	draw_face(cv, R, p, st)
 	draw_hair(cv, R, p, st)
+	draw_brows(cv, R, p, st)
 	draw_hat(cv, R, p, st)
 	xf_reset(cv)
 	draw_head_extra(cv, J, p, st)
@@ -725,61 +726,84 @@ func head_pts(R: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in 32:
 		var a := TAU * float(i) / 32.0
-		var chin := pow(maxf(0.0, cos(a - deg_to_rad(60.0))), 7.0)
-		var jaw := pow(maxf(0.0, cos(a - deg_to_rad(95.0))), 4.0)
-		var r := R * (1.0 + 0.32 * chin + 0.05 * jaw)
+		var chin := pow(maxf(0.0, cos(a - deg_to_rad(68.0))), 8.0)
+		var jaw := pow(maxf(0.0, cos(a - deg_to_rad(90.0))), 4.0)
+		var r := R * (1.0 + 0.34 * chin + 0.08 * jaw)
 		pts.append(Vector2(cos(a) * r * 0.95, sin(a) * r * 1.02))
 	return pts
+
+
+## Faces are drawn in a three-quarter view turned toward the opponent:
+## the near eye is full size and the far eye is narrower near the cheek line.
+const EYE_NEAR := Vector2(0.14, 0.1)
+const EYE_FAR := Vector2(0.7, 0.08)
+const MOUTH := Vector2(0.48, 0.64)
+var _squash := 1.0
 
 
 func draw_face(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	var face: String = p.get("face", "normal")
 	var skin := fc(col.skin, st)
 	# ear
-	shape(cv, ellipse(Vector2(-R * 0.16, R * 0.1), R * 0.2, R * 0.27, 12), col.skin, st, false)
-	shape(cv, head_pts(R), col.skin, st, true, 2.6)
-	cv.draw_arc(Vector2(-R * 0.16, R * 0.1), R * 0.1, -1.0, 2.0, 6, shadow_of(skin).darkened(0.25), 1.6, true)
+	shape(cv, ellipse(Vector2(-R * 0.48, R * 0.12), R * 0.19, R * 0.27, 12), col.skin, st, false)
+	var head := head_pts(R)
+	shape(cv, head, col.skin, st, true, 2.6, 0.4)
+	cv.draw_arc(Vector2(-R * 0.48, R * 0.12), R * 0.1, -1.0, 2.0, 6, shadow_of(skin).darkened(0.25), 1.6, true)
 	var ink := OUTLINE
-	var eye := Vector2(R * 0.54, R * 0.04)
-	match face:
-		"hurt":
-			cv.draw_polyline(PackedVector2Array([eye + Vector2(-R * 0.14, -R * 0.14), eye + Vector2(R * 0.1, 0), eye + Vector2(-R * 0.14, R * 0.14)]), ink, 3.0, true)
-		"ko":
-			cv.draw_line(eye + Vector2(-R * 0.12, -R * 0.12), eye + Vector2(R * 0.12, R * 0.12), ink, 2.8, true)
-			cv.draw_line(eye + Vector2(-R * 0.12, R * 0.12), eye + Vector2(R * 0.12, -R * 0.12), ink, 2.8, true)
-		"closed":
-			cv.draw_arc(eye + Vector2(0, -R * 0.05), R * 0.15, 0.3, PI - 0.3, 7, ink, 2.6, true)
-		_:
-			draw_eye(cv, eye, R, face, st)
-	var brow_tilt := 0.0
-	if face in ["angry", "shout", "attack"]:
-		brow_tilt = R * 0.16
-	elif face == "hurt":
-		brow_tilt = -R * 0.12
-	draw_brow(cv, eye, R, brow_tilt, st)
+	for far in [true, false]:
+		_squash = 0.62 if far else 1.0
+		var eye: Vector2 = (EYE_FAR if far else EYE_NEAR) * R
+		match face:
+			"hurt":
+				var k := _squash
+				cv.draw_polyline(PackedVector2Array([eye + Vector2(-R * 0.14 * k, -R * 0.14), eye + Vector2(R * 0.1 * k, 0), eye + Vector2(-R * 0.14 * k, R * 0.14)]), ink, 3.0, true)
+			"ko":
+				var k := _squash
+				cv.draw_line(eye + Vector2(-R * 0.12 * k, -R * 0.12), eye + Vector2(R * 0.12 * k, R * 0.12), ink, 2.8, true)
+				cv.draw_line(eye + Vector2(-R * 0.12 * k, R * 0.12), eye + Vector2(R * 0.12 * k, -R * 0.12), ink, 2.8, true)
+			"closed":
+				cv.draw_arc(eye + Vector2(0, -R * 0.05), R * 0.15 * _squash, 0.3, PI - 0.3, 7, ink, 2.6, true)
+			_:
+				draw_eye(cv, eye, R, face, st)
+	_squash = 1.0
 	# nose: a small shadow wedge with an ink tip
-	cv.draw_colored_polygon(PackedVector2Array([Vector2(R * 0.9, R * 0.02), Vector2(R * 1.03, R * 0.24), Vector2(R * 0.88, R * 0.26)]), shadow_of(skin))
-	cv.draw_line(Vector2(R * 0.97, R * 0.1), Vector2(R * 1.04, R * 0.24), shadow_of(skin).darkened(0.35), 1.6, true)
+	var nz := Vector2(R * 0.5, R * 0.22)
+	cv.draw_colored_polygon(PackedVector2Array([nz, nz + Vector2(R * 0.1, R * 0.2), nz + Vector2(-R * 0.04, R * 0.22)]), shadow_of(skin))
+	cv.draw_line(nz + Vector2(R * 0.04, R * 0.08), nz + Vector2(R * 0.1, R * 0.2), shadow_of(skin).darkened(0.35), 1.7, true)
 	draw_mouth(cv, R, face, st)
 	draw_face_extra(cv, R, p, st)
 
 
+## Brows go over the fringe, as in anime art.
+func draw_brows(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
+	var face: String = p.get("face", "normal")
+	var tilt := 0.0
+	if face in ["angry", "shout", "attack"]:
+		tilt = R * 0.16
+	elif face == "hurt":
+		tilt = -R * 0.12
+	for far in [true, false]:
+		_squash = 0.62 if far else 1.0
+		draw_brow(cv, (EYE_FAR if far else EYE_NEAR) * R, R, tilt, st)
+	_squash = 1.0
+
+
 func draw_mouth(cv: CanvasItem, R: float, face: String, _st: Dictionary) -> void:
-	var m := Vector2(R * 0.72, R * 0.58)
+	var m := MOUTH * R
 	var ink := OUTLINE
 	match face:
 		"shout":
-			var o := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.26, -0.12], [0.18, -0.16], [0.16, 0.08], [0.06, 0.26], [-0.18, 0.2]])
+			var o := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.24, -0.12], [0.2, -0.14], [0.17, 0.08], [0.06, 0.26], [-0.16, 0.2]])
 			cv.draw_colored_polygon(o, Color("5a1018"))
 			cv.draw_colored_polygon(local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.1, 0.24], [0.06, 0.14], [0.08, 0.24]]), Color("d0545a"))
-			cv.draw_colored_polygon(local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.24, -0.11], [0.17, -0.15], [0.17, -0.07], [-0.22, -0.04]]), Color.WHITE)
+			cv.draw_colored_polygon(local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.22, -0.11], [0.19, -0.13], [0.18, -0.06], [-0.2, -0.04]]), Color.WHITE)
 			outline(cv, o, 2.0)
 		"attack", "hurt":
-			var g := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.26, -0.08], [0.16, -0.12], [0.14, 0.1], [-0.22, 0.1]])
+			var g := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[-0.24, -0.08], [0.18, -0.11], [0.16, 0.1], [-0.2, 0.1]])
 			cv.draw_colored_polygon(g, Color.WHITE)
 			cv.draw_line(g[0].lerp(g[3], 0.5), g[1].lerp(g[2], 0.5), Color(0.55, 0.5, 0.5), 1.2, true)
 			for i in 3:
-				var x := lerpf(-0.14, 0.08, float(i) / 2.0)
+				var x := lerpf(-0.12, 0.1, float(i) / 2.0)
 				var a := local_pts(m, Vector2.RIGHT, Vector2.DOWN, R, [[x, -0.1], [x, 0.1]])
 				cv.draw_line(a[0], a[1], Color(0.55, 0.5, 0.5), 1.0, true)
 			outline(cv, g, 2.0)
@@ -787,60 +811,63 @@ func draw_mouth(cv: CanvasItem, R: float, face: String, _st: Dictionary) -> void
 			var g := PackedVector2Array()
 			for i in 9:
 				var a := lerpf(0.0, PI, float(i) / 8.0)
-				g.append(m + Vector2(-cos(a) * R * 0.3, sin(a) * R * 0.24 - R * 0.1) + Vector2(R * 0.02, 0))
+				g.append(m + Vector2(-cos(a) * R * 0.32, sin(a) * R * 0.24 - R * 0.1))
 			cv.draw_colored_polygon(g, Color("5a1018"))
 			var teeth := PackedVector2Array([g[0], g[8], g[8] + Vector2(-R * 0.02, R * 0.08), g[0] + Vector2(R * 0.02, R * 0.08)])
 			cv.draw_colored_polygon(teeth, Color.WHITE)
 			outline(cv, g, 2.0)
-			cv.draw_arc(g[8] + Vector2(R * 0.05, -R * 0.02), R * 0.08, -0.6, 0.9, 5, ink, 1.6, true)
+			cv.draw_arc(g[0] + Vector2(-R * 0.05, -R * 0.02), R * 0.08, PI - 0.9, PI + 0.6, 5, ink, 1.6, true)
 		"ko":
 			cv.draw_arc(m + Vector2(0, R * 0.14), R * 0.15, PI + 0.4, TAU - 0.4, 6, ink, 2.0, true)
 		"angry":
-			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.22, R * 0.03), m + Vector2(-R * 0.04, -R * 0.02), m + Vector2(R * 0.14, R * 0.02)]), ink, 2.2, true)
+			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.18, R * 0.03), m + Vector2(0, -R * 0.02), m + Vector2(R * 0.16, R * 0.02)]), ink, 2.2, true)
 		_:
-			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.2, 0), m + Vector2(-R * 0.02, R * 0.02), m + Vector2(R * 0.13, -R * 0.03)]), ink, 2.0, true)
+			cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.17, -R * 0.01), m + Vector2(0, R * 0.02), m + Vector2(R * 0.15, -R * 0.02)]), ink, 2.0, true)
 
 
 func draw_eye(cv: CanvasItem, eye: Vector2, R: float, face: String, st: Dictionary) -> void:
-	var w := R * 0.19
-	var h := R * 0.31
+	var w := R * 0.24 * _squash
+	var h := R * 0.35
 	var lid := 0.0
 	if face in ["angry", "shout", "attack"]:
-		lid = 0.38
+		lid = 0.4
 	var sc := PackedVector2Array()
 	for i in 16:
 		var a := TAU * float(i) / 16.0
 		var y := sin(a) * h
 		if y < 0.0:
 			y *= 1.0 - lid * (0.6 + 0.4 * cos(a))
+		else:
+			y *= 0.8
 		sc.append(eye + Vector2(cos(a) * w, y))
 	cv.draw_colored_polygon(sc, fc(Color(0.98, 0.97, 0.95), st))
-	var ic := eye + Vector2(w * 0.3, h * 0.1)
-	var iris := ellipse(ic, w * 0.66, h * 0.7, 14)
+	var ic := eye + Vector2(w * 0.28, h * 0.08)
+	var iris := ellipse(ic, w * 0.68, h * 0.66, 14)
 	var ir := Geometry2D.intersect_polygons(iris, sc)
 	_fill(cv, ir, fc(col.eye, st))
 	if not ir.is_empty():
-		_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(0, h * 0.3), w * 0.55, h * 0.42, 12), ir[0]), fc(col.eye, st).lightened(0.35))
-	_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(w * 0.06, h * 0.04), w * 0.3, h * 0.36, 10), sc), Color(0.04, 0.03, 0.05))
-	cv.draw_circle(ic + Vector2(w * 0.25, -h * 0.3 + lid * h * 0.5), R * 0.06, Color.WHITE)
-	cv.draw_circle(ic + Vector2(-w * 0.25, h * 0.38), R * 0.028, Color(1, 1, 1, 0.85))
-	# upper lash: thick, with a flick at the outer corner
+		_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(0, h * 0.3), w * 0.55, h * 0.4, 12), ir[0]), fc(col.eye, st).lightened(0.4))
+	_fill(cv, Geometry2D.intersect_polygons(ellipse(ic + Vector2(w * 0.05, h * 0.02), w * 0.32, h * 0.34, 10), sc), Color(0.04, 0.03, 0.05))
+	cv.draw_circle(ic + Vector2(w * 0.25, -h * 0.28 + lid * h * 0.5), R * 0.065 * sqrt(_squash), Color.WHITE)
+	cv.draw_circle(ic + Vector2(-w * 0.25, h * 0.32), R * 0.03, Color(1, 1, 1, 0.85))
+	# upper lash: thick, with a flick at the outer (back) corner
 	var lash := PackedVector2Array()
 	for i in range(8, 17):
 		lash.append(sc[i % 16])
-	lash.append(sc[8] + Vector2(-w * 0.45, -h * 0.25))
+	lash.append(sc[8] + Vector2(-w * 0.45, -h * 0.28))
 	lash.reverse()
-	cv.draw_polyline(lash, OUTLINE, 3.4, true)
+	cv.draw_polyline(lash, OUTLINE, 3.6, true)
 	cv.draw_line(sc[5], sc[7], Color(OUTLINE, 0.7), 1.4, true)
 
 
 func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictionary) -> void:
-	var inner := eye + Vector2(R * 0.26, -R * 0.36 + tilt)
-	var outer := eye + Vector2(-R * 0.24, -R * 0.42 - tilt * 0.35)
+	var k := _squash
+	var inner := eye + Vector2(R * 0.24 * k, -R * 0.4 + tilt)
+	var outer := eye + Vector2(-R * 0.24 * k, -R * 0.46 - tilt * 0.35)
 	var d := (inner - outer).normalized()
 	var n := Vector2(-d.y, d.x)
 	var c := fc(col.hair, st).darkened(0.2)
-	var pts := PackedVector2Array([outer + n * 1.2, outer.lerp(inner, 0.5) - n * 2.8, inner - n * 2.4, inner + n * 1.6, outer.lerp(inner, 0.5) + n * 1.6])
+	var pts := PackedVector2Array([outer + n * 1.2, outer.lerp(inner, 0.5) - n * 3.0, inner - n * 2.4, inner + n * 1.6, outer.lerp(inner, 0.5) + n * 1.8])
 	if not Geometry2D.triangulate_polygon(pts).is_empty():
 		cv.draw_colored_polygon(pts, c)
 

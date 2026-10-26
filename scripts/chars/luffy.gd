@@ -163,14 +163,14 @@ func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictio
 
 
 func draw_hair_back(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R, 110.0, 250.0, 5, R * 0.42, col.hair, st, 0.4, Vector2(-R * 0.1, -R * 0.05), 3)
+	spikes(cv, R, 100.0, 250.0, 6, R * 0.45, col.hair, st, 0.4, Vector2(-R * 0.1, -R * 0.05), 3, -16.0)
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R * 0.98, 200.0, 345.0, 6, R * 0.34, col.hair, st, 0.35, Vector2(-R * 0.05, -R * 0.12), 7)
-	# bangs over the forehead
-	var b := PackedVector2Array([Vector2(R * 0.1, -R * 0.85), Vector2(R * 0.95, -R * 0.55), Vector2(R * 0.72, -R * 0.2), Vector2(R * 0.58, -R * 0.45), Vector2(R * 0.42, -R * 0.12), Vector2(R * 0.28, -R * 0.42), Vector2(R * 0.05, -R * 0.2)])
-	shape(cv, b, col.hair, st, false, 2.0)
+	spikes(cv, R * 0.98, 195.0, 335.0, 6, R * 0.32, col.hair, st, 0.35, Vector2(-R * 0.05, -R * 0.12), 7, -18.0)
+	# messy fringe over the forehead, short enough to show the eyes
+	var b := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.3, -0.98], [0.4, -1.02], [0.92, -0.7], [1.04, -0.36], [0.84, -0.5], [0.72, -0.3], [0.58, -0.52], [0.44, -0.34], [0.3, -0.56], [0.12, -0.36], [0.02, -0.58], [-0.22, -0.5]])
+	shape(cv, b, col.hair, st, true, 2.2)
 
 
 func draw_hat(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
@@ -194,7 +194,8 @@ func draw_hat(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	var c := Vector2(R * 0.46, R * 0.3)
+	# the stitched scar under the eye
+	var c := Vector2(R * 0.12, R * 0.46)
 	var sc := fc(col.skin, st).darkened(0.45)
 	cv.draw_line(c + Vector2(-R * 0.12, 0), c + Vector2(R * 0.12, 0), sc, 1.6, true)
 	for i in 3:

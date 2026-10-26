@@ -157,17 +157,31 @@ func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictio
 		cv.draw_line(Vector2(-16 * ch, y), Vector2(17 * ch, y - 1), fc(Color("2c6c2c"), st), 1.4, true)
 
 
+func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
+	if s != "b":
+		return
+	# black bandana tied around the left arm, with its ends trailing
+	var a: Vector2 = J.shoulder.lerp(J.elbow_b, 0.42)
+	var d: Vector2 = (J.elbow_b - J.shoulder).normalized()
+	var n := Vector2(d.y, -d.x)
+	var k: float = dims.limb
+	var band := PackedVector2Array([a + n * 13.0 * k - d * 5.0, a + n * 13.5 * k + d * 5.0, a - n * 13.5 * k + d * 5.0, a - n * 13.0 * k - d * 5.0])
+	shape(cv, band, Color("1d1d22"), st, true, 2.0)
+	flutter(cv, a - n * 12.0 * k, -40.0, 22.0, 4.0, 2.5, Color("1d1d22"), st, 0.3, 3)
+	flutter(cv, a - n * 12.0 * k, -15.0, 18.0, 3.5, 2.0, Color("1d1d22"), st, 1.9, 3)
+
+
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	# short spiky green hair
-	spikes(cv, R * 0.97, 140.0, 352.0, 9, R * 0.3, col.hair, st, 0.45, Vector2(0, -R * 0.1), 11)
-	var fr := PackedVector2Array([Vector2(R * 0.05, -R * 0.95), Vector2(R * 1.0, -R * 0.62), Vector2(R * 0.78, -R * 0.42), Vector2(R * 0.62, -R * 0.55), Vector2(R * 0.4, -R * 0.4), Vector2(R * 0.1, -R * 0.55)])
-	shape(cv, fr, col.hair, st, false, 2.0)
+	spikes(cv, R * 0.97, 150.0, 345.0, 9, R * 0.28, col.hair, st, 0.45, Vector2(0, -R * 0.12), 11, -20.0)
+	var fr := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.1, -1.0], [0.6, -0.98], [1.0, -0.66], [0.84, -0.56], [0.7, -0.64], [0.52, -0.52], [0.36, -0.64], [0.16, -0.54], [0.0, -0.7]])
+	shape(cv, fr, col.hair, st, true, 2.2)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	# three gold earrings
 	for i in 3:
-		var e := Vector2(-R * 0.2, R * 0.3 + i * R * 0.1)
+		var e := Vector2(-R * 0.52, R * 0.32 + i * R * 0.1)
 		cv.draw_line(e, e + Vector2(0, R * 0.14), fc(Color("f0c040"), st), 2.2, true)
 
 
@@ -175,7 +189,7 @@ func draw_head_extra(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionar
 	# third sword held in the mouth (Shusui, black handle)
 	var R: float = dims.head
 	xf(cv, J.head, J.head_ang)
-	var m := Vector2(R * 0.72, R * 0.55)
+	var m := Vector2(R * 0.46, R * 0.66)
 	var ang := deg_to_rad(float(p.get("ma", 8.0)))
 	var v := Vector2(cos(ang), sin(ang))
 	_draw_blade(cv, m - v * 4.0, v, 92.0, Color("26202a"), st, 12.0)

@@ -145,6 +145,8 @@ func setup() -> void:
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
+	# jacket tails swing behind the hips
+	flutter(cv, Vector2(-15 * ch, -2), -10.0, 34.0, 11.0, 8.0, col.top, st, 0.5, 4)
 	# blue shirt V, black tie and jacket lapel
 	var shirt := PackedVector2Array([Vector2(8 * ch, -L * 0.45), Vector2(19 * ch, -L * 0.7), Vector2(15 * ch, -L - 3), Vector2(4 * ch, -L - 1)])
 	shape(cv, shirt, Color("4f7fcf"), st, false, 1.8)
@@ -165,24 +167,28 @@ func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void
 	back.append(Vector2(R * 0.4, -R * 0.5))
 	back.append(Vector2(-R * 0.6, R * 0.55))
 	shape(cv, back, col.hair, st, true, 2.0)
-	var bang := PackedVector2Array([Vector2(R * 0.05, -R * 1.0), Vector2(R * 0.85, -R * 0.75), Vector2(R * 1.05, -R * 0.2), Vector2(R * 0.82, R * 0.12), Vector2(R * 0.7, -R * 0.2), Vector2(R * 0.5, -R * 0.12), Vector2(R * 0.4, -R * 0.5)])
+	# the long fringe hides the near eye
+	var bang := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.3, -1.04], [0.5, -0.96], [0.44, -0.5], [0.38, -0.1], [0.34, 0.34], [0.22, 0.12], [0.12, 0.4], [0.0, 0.12], [-0.14, 0.26], [-0.22, -0.3], [-0.38, -0.6]])
 	shape(cv, bang, col.hair, st, true, 2.0)
 
 
 func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictionary) -> void:
-	# the famous curly eyebrow
-	var c := eye + Vector2(-R * 0.18, -R * 0.36 - tilt * 0.3)
-	cv.draw_arc(c, R * 0.07, 0.0, TAU * 0.85, 8, fc(col.hair, st).darkened(0.3), 2.2, true)
-	cv.draw_line(c + Vector2(R * 0.07, 0), eye + Vector2(R * 0.26, -R * 0.34 + tilt), fc(col.hair, st).darkened(0.3), 2.6, true)
+	# the famous curly eyebrow; the near one is hidden by the fringe
+	if _squash > 0.9:
+		return
+	var c := eye + Vector2(-R * 0.14, -R * 0.42 - tilt * 0.3)
+	var ink := fc(col.hair, st).darkened(0.45)
+	cv.draw_arc(c, R * 0.075, 0.0, TAU * 0.85, 8, ink, 2.4, true)
+	cv.draw_line(c + Vector2(R * 0.075, 0), eye + Vector2(R * 0.2, -R * 0.4 + tilt), ink, 2.8, true)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	# goatee and cigarette
-	cv.draw_line(Vector2(R * 0.7, R * 0.9), Vector2(R * 0.82, R * 1.08), fc(col.hair, st).darkened(0.25), 3.0, true)
+	cv.draw_line(Vector2(R * 0.4, R * 1.04), Vector2(R * 0.44, R * 1.24), fc(col.hair, st).darkened(0.25), 3.4, true)
 	if p.get("face", "") in ["shout", "attack", "hurt", "ko"]:
 		return
-	var m := Vector2(R * 0.82, R * 0.55)
-	var tip := m + Vector2(R * 0.55, -R * 0.06)
+	var m := Vector2(R * 0.58, R * 0.64)
+	var tip := m + Vector2(R * 0.55, -R * 0.08)
 	cv.draw_line(m, tip, Color(0.96, 0.95, 0.9), 4.0, true)
 	cv.draw_line(tip - Vector2(R * 0.08, 0), tip, Color(1.0, 0.45, 0.1), 4.0, true)
 
@@ -211,5 +217,5 @@ func update_fx(f, fx) -> void:
 	elif String(p.get("face", "")) in ["normal", "grin", "closed", "angry"] and Engine.get_physics_frames() % 9 == 0:
 		# cigarette smoke
 		var R: float = dims.head
-		var tip: Vector2 = f.J.head + Vector2(R * 1.3, R * 0.5).rotated(f.J.head_ang)
+		var tip: Vector2 = f.J.head + Vector2(R * 1.1, R * 0.56).rotated(f.J.head_ang)
 		fx.smoke(f.world_point(tip), Color(0.9, 0.9, 0.95, 0.35), 0.5)

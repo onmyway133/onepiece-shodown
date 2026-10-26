@@ -114,6 +114,7 @@ func _ready() -> void:
 	stage = Stage.new()
 	add_child(stage)
 	stage.setup(Game.stage)
+	CharData.rim = Game.stage_rim(Game.stage)
 	add_child(world)
 	fx = Fx.new()
 	add_child(fx)
@@ -617,3 +618,7 @@ func _debug_hooks() -> void:
 	if debug.has("quit") and frame >= int(debug.quit):
 		print("STATE f1=%s hp=%d  f2=%s hp=%d  wins %d-%d" % [f1.state, f1.hp, f2.state, f2.hp, f1.wins, f2.wins])
 		get_tree().quit()
+
+
+func _exit_tree() -> void:
+	CharData.rim = Color(1.0, 0.82, 0.6, 0.45)

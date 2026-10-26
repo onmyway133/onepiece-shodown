@@ -158,14 +158,14 @@ func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	var c := fc(Color("b87a52"), st)
-	for v in [Vector2(0.32, 0.28), Vector2(0.42, 0.34), Vector2(0.52, 0.28), Vector2(0.38, 0.4)]:
+	for v in [Vector2(0.02, 0.4), Vector2(0.12, 0.46), Vector2(0.22, 0.4), Vector2(0.1, 0.52), Vector2(0.64, 0.4), Vector2(0.72, 0.46)]:
 		cv.draw_circle(v * R, 1.5, c)
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R * 1.0, 110.0, 345.0, 7, R * 0.3, col.hair, st, 0.3, Vector2(-R * 0.05, -R * 0.05), 5)
-	var b := PackedVector2Array([Vector2(R * 0.0, -R * 0.9), Vector2(R * 0.95, -R * 0.55), Vector2(R * 0.82, -R * 0.12), Vector2(R * 0.62, -R * 0.38), Vector2(R * 0.5, -R * 0.08), Vector2(R * 0.32, -R * 0.4), Vector2(R * 0.05, -R * 0.2)])
-	shape(cv, b, col.hair, st, false, 2.0)
+	spikes(cv, R * 1.0, 100.0, 345.0, 8, R * 0.32, col.hair, st, 0.3, Vector2(-R * 0.05, -R * 0.05), 5, -14.0)
+	var b := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.2, -1.0], [0.6, -0.95], [0.98, -0.6], [0.98, -0.3], [0.82, -0.44], [0.7, -0.26], [0.58, -0.5], [0.44, -0.3], [0.32, -0.54], [0.14, -0.36], [0.02, -0.6], [-0.22, -0.56]])
+	shape(cv, b, col.hair, st, true, 2.2)
 
 
 func draw_hat(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
