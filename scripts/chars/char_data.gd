@@ -577,7 +577,7 @@ func draw_arm(cv: CanvasItem, J: Dictionary, p: Dictionary, s: String, st: Dicti
 		shape(cv, muscle(sh, el, 11.0 * k, 9.0 * k, Vector2(0.48, 0.17), Vector2(0.32, 0.13)), col.skin, st)
 		if sl == "short":
 			cloth(cv, sh, sh.lerp(el, 0.58), 13.0 * k, 12.0 * k, sleeve, st, 1.14, 1, 1)
-		else:
+		elif not style.get("slim", false):
 			# deltoid cap
 			var dd := (el - sh).normalized()
 			shape(cv, ellipse(sh + dd * 7.0 * k, 13.5 * k, 10.5 * k, 14, dd.angle()), col.skin, st)

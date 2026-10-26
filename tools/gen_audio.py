@@ -207,6 +207,23 @@ def sfx():
     write_wav("menu_move", tone([1320, 2640], 0.06, 30, [1, 0.3]), 0.35)
     write_wav("menu_ok", reverb(mix(pluck(midi(74), 0.4), pluck(midi(81), 0.4) * 0.7), 0.4, 0.2), 0.6)
     write_wav("menu_back", tone([660, 990], 0.08, 25, [1, 0.3]), 0.35)
+    sfx_elements()
+
+
+def sfx_elements():
+    """Thunder crack and water splash for Nami and Jinbe."""
+    n = int(SR * 1.3)
+    crack = filt(noise(1.3), 1500, 11000) * env(n, 0.001, curve=40) * 1.4
+    roll = filt(noise(1.3), hi=260) * 4.0 * np.exp(-np.linspace(0, 3.5, n)) * (1 + 0.5 * np.sin(np.linspace(0, 40, n)))
+    write_wav("thunder", reverb(soft(mix(crack, roll, pitch_drop(90, 30, 1.3, 3)), 1.8), 0.9, 0.3), 0.95)
+    n = int(SR * 0.6)
+    gush = filt(noise(0.6), 300, 4000) * env(n, 0.01, curve=5)
+    bubbles = np.zeros(n)
+    for i in range(10):
+        s = int(rng.random() * n * 0.7)
+        b = tone([float(400 + rng.random() * 900)], 0.06, 30) * 0.4
+        bubbles[s:s + len(b)] += b[: n - s]
+    write_wav("splash", soft(mix(gush, bubbles, pitch_drop(140, 60, 0.6, 6) * 0.6), 1.5), 0.85)
 
 
 # ---------------------------------------------------------------- instruments

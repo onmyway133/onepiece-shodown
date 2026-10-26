@@ -89,6 +89,17 @@ func spark(pos: Vector2, kind: String, facing: int) -> void:
 				_p(parts_a, {"k": "flame", "pos": pos + Vector2(cos(a), sin(a)) * 10.0, "vel": Vector2(cos(a), sin(a)) * randf_range(3, 10), "life": randi_range(16, 32), "r": randf_range(12, 26), "drag": 0.9, "rise": 0.15})
 			for i in 8:
 				_p(parts_a, {"k": "ember", "pos": pos, "vel": Vector2(randf_range(-8, 8), randf_range(-12, -2)), "life": randi_range(24, 44), "r": 3.0, "drag": 0.96, "rise": -0.25})
+		"electric":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 150.0, "life": 12, "col": Color(1.0, 0.95, 0.45, 0.9)})
+			_p(parts_a, {"k": "star", "pos": pos, "r": 90.0, "life": 9, "col": Color(1, 1, 0.8)})
+			for i in 6:
+				_p(parts_a, {"k": "zap", "pos": pos, "life": randi_range(5, 10), "r": randf_range(40, 80), "seed": randi(), "col": Color(1.0, 0.95, 0.5)})
+		"water":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 130.0, "life": 12, "col": Color(0.4, 0.7, 1.0, 0.8)})
+			_p(parts_a, {"k": "star", "pos": pos, "r": 80.0, "life": 9, "col": Color(0.85, 0.95, 1.0)})
+			for i in 14:
+				var a := randf() * TAU
+				_p(parts_n, {"k": "drop", "pos": pos, "vel": Vector2(cos(a) * randf_range(4, 12), sin(a) * randf_range(3, 9) - 3.0), "life": randi_range(14, 26), "r": randf_range(3.0, 6.0), "drag": 0.96, "rise": -0.45, "col": Color(0.6, 0.85, 1.0, 0.9)})
 		"heavy":
 			_p(parts_a, {"k": "glow", "pos": pos, "r": 160.0, "life": 12, "col": Color(1.0, 0.85, 0.5, 0.9)})
 			_p(parts_a, {"k": "star", "pos": pos, "r": 105.0, "life": 10, "col": Color(1, 0.95, 0.75)})
