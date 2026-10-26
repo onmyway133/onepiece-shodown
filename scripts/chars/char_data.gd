@@ -405,6 +405,11 @@ func shape(cv: CanvasItem, pts: PackedVector2Array, c: Color, st: Dictionary, sh
 	if pts.size() < 3:
 		return
 	var base := fc(c, st)
+	if st.has("alpha"):
+		# afterimage: one flat translucent silhouette
+		if not Geometry2D.triangulate_polygon(pts).is_empty():
+			cv.draw_colored_polygon(pts, Color(base.r, base.g, base.b, st.alpha))
+		return
 	if Geometry2D.triangulate_polygon(pts).is_empty():
 		outline(cv, pts, w)
 		return

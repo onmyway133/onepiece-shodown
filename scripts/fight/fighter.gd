@@ -4,6 +4,7 @@ extends Node2D
 ## The Fight node ticks fighters at 60 Hz and resolves hits between them.
 
 const Rig := preload("res://scripts/fight/rig.gd")
+const Ghost := preload("res://scripts/fight/ghost.gd")
 const GRAVITY := 0.95
 ## Fighters are drawn and collide at this size relative to their rig units.
 const SCALE := 1.22
@@ -229,11 +230,12 @@ func _refresh() -> void:
 		var tp := cd.trail_points(String(move.trail), J)
 		if tp.size() == 2:
 			trail.append([world_point(tp[0]), world_point(tp[1])])
-			if trail.size() > 7:
+			if trail.size() > 8:
 				trail.pop_front()
 	elif trail.size() > 0 and hitstop == 0:
 		trail.pop_front()
 	rig.scale = Vector2(facing * SCALE, SCALE)
+	_afterimages()
 	rig.pose = pose
 	rig.J = J
 	var tint: Color = cd.tint_for(pose)
@@ -604,6 +606,26 @@ func add_rage(v: float) -> void:
 		rage_mode = RAGE_TIME
 		if fight:
 			fight.on_rage(self)
+
+
+## Leave glowing afterimages during dashes, supers and rushing specials.
+func _afterimages() -> void:
+	if fight == null or hitstop > 0:
+		return
+	var want := state in ["dash", "backdash"]
+	if state == "attack" and (move.get("super", false) or move.get("pass", false) or move.get("ghost", false)):
+		want = true
+	if not want or Engine.get_physics_frames() % 3 != 0:
+		return
+	var g := Ghost.new()
+	g.cd = cd
+	g.J = J
+	g.pose = pose
+	g.col = cd.trail_color if cd.trail_color != Color.WHITE else cd.accent.lightened(0.3)
+	g.position = position
+	g.scale = rig.scale
+	fight.world.add_child(g)
+	fight.world.move_child(g, 0)
 
 
 # ---------------------------------------------------------------- physics

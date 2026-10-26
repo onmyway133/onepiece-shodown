@@ -84,6 +84,11 @@ var fx: Node2D
 var cam := Camera2D.new()
 var hud: Control
 var hud_layer := CanvasLayer.new()
+var flash_layer := CanvasLayer.new()
+var flash_rect := ColorRect.new()
+var flash_t := 0
+var flash_len := 1
+var flash_col := Color.WHITE
 var f1: Fighter
 var f2: Fighter
 var fighters: Array = []
@@ -121,6 +126,12 @@ func _ready() -> void:
 	add_child(cam)
 	cam.make_current()
 	cam.position = Vector2(0, -300)
+	add_child(flash_layer)
+	flash_layer.layer = 4
+	flash_rect.size = Vector2(1280, 720)
+	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash_rect.color = Color(1, 1, 1, 0)
+	flash_layer.add_child(flash_rect)
 	add_child(hud_layer)
 	hud_layer.layer = 5
 	hud = Hud.new()
@@ -184,6 +195,7 @@ func start_round() -> void:
 func _physics_process(_delta: float) -> void:
 	frame += 1
 	_debug_hooks()
+	_flash_step()
 	if super_freeze > 0:
 		super_freeze -= 1
 		_camera()
@@ -399,6 +411,8 @@ func _apply_hit(atk: Fighter, def: Fighter, h: Dictionary, point: Vector2, from_
 		if hs >= 10:
 			shake(hs * 0.7)
 			zoom_punch = 0.06
+			impact_frame(Color(1, 0.97, 0.9), 3, 0.45)
+			fx.impact_lines(point, 16, 300.0)
 		elif hs >= 7:
 			shake(3.0)
 		if def.combo >= 2:
@@ -451,6 +465,22 @@ func spawn_projectile(f: Fighter, d: Dictionary) -> void:
 
 # ---------------------------------------------------------------- events
 
+## Full screen flash for big impacts, supers and KOs.
+func impact_frame(c: Color, frames := 3, strength := 0.5) -> void:
+	flash_col = Color(c.r, c.g, c.b, strength)
+	flash_t = frames
+	flash_len = frames
+
+
+func _flash_step() -> void:
+	if flash_t > 0:
+		var u := float(flash_t) / flash_len
+		flash_rect.color = Color(flash_col.r, flash_col.g, flash_col.b, flash_col.a * u)
+		flash_t -= 1
+	else:
+		flash_rect.color.a = 0.0
+
+
 func callout(f: Fighter, text: String) -> void:
 	hud.callout(f.player, text)
 
@@ -460,6 +490,8 @@ func super_start(f: Fighter, title: String) -> void:
 	hud.super_cutin(f, title)
 	Sfx.play("super", 0.0, 1.0, 0.0)
 	fx.ring(f.world_point(f.J.neck), Color(1, 0.9, 0.5), 260.0, 30, 10.0)
+	fx.speed_lines(f.world_point(f.J.neck), 40, Color(1, 0.95, 0.8, 0.55))
+	impact_frame(Color(0, 0, 0), 6, 0.5)
 
 
 func on_rage(f: Fighter) -> void:
@@ -483,6 +515,9 @@ func _check_ko() -> void:
 		hud.banner("K.O.", 110, 170, Color(1, 0.3, 0.2))
 		Sfx.play("ko", 0.0, 1.0, 0.0)
 		shake(12.0)
+		impact_frame(Color(1, 1, 1), 5, 0.8)
+		var loser := f1 if f1.ko else f2
+		fx.speed_lines(loser.world_point(loser.J.neck), 50, Color(1, 0.85, 0.7, 0.6))
 		zoom_punch = 0.12
 		for f in fighters:
 			f.locked = true
