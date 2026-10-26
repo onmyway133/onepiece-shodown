@@ -144,6 +144,20 @@ func ring(pos: Vector2, c: Color, r1 := 120.0, life := 16, w := 6.0) -> void:
 	_p(parts_a, {"k": "glow", "pos": pos, "r": r1 * 0.8, "life": life, "col": Color(c.r, c.g, c.b, 0.5)})
 
 
+## Flat ellipse ring along the ground plane (shockwaves).
+func ering(pos: Vector2, c: Color, r1 := 160.0, life := 16, w := 6.0) -> void:
+	_p(parts_a, {"k": "ering", "pos": pos, "r0": 10.0, "r1": r1, "life": life, "col": c, "w": w})
+
+
+## A lightning bolt striking down onto pos from the sky.
+func lightning(pos: Vector2) -> void:
+	_p(parts_a, {"k": "bolt", "pos": pos, "life": 16, "seed": randi(), "col": Color(1.0, 0.95, 0.55)})
+	_p(parts_a, {"k": "glow", "pos": pos, "r": 220.0, "life": 14, "col": Color(1.0, 0.9, 0.4, 0.9)})
+	ering(Vector2(pos.x, 0.0), Color(1.0, 0.95, 0.6), 180.0, 16, 7.0)
+	for i in 8:
+		_p(parts_a, {"k": "zap", "pos": pos + Vector2(randf_range(-30, 30), randf_range(-150, 100)), "life": randi_range(6, 12), "r": randf_range(40, 80), "seed": randi(), "col": Color(1.0, 0.95, 0.6)})
+
+
 ## Radial anime speed lines around a point (supers, KO).
 func speed_lines(pos: Vector2, life := 30, c := Color(1, 1, 1, 0.7)) -> void:
 	_p(parts_a, {"k": "speed", "pos": pos, "life": life, "col": c, "seed": randi()})
@@ -180,6 +194,40 @@ func burst(name: String, pos: Vector2, facing: int) -> void:
 		"slash_x":
 			arc_slash(pos, -0.7, 170.0, Color(0.4, 0.8, 1.0), facing)
 			arc_slash(pos, 0.7, 170.0, Color(0.4, 0.8, 1.0), -facing)
+		"slash_dark":
+			arc_slash(pos, -0.5, 230.0, Color(0.3, 1.0, 0.55), facing)
+			arc_slash(pos, 0.6, 200.0, Color(0.3, 1.0, 0.55), -facing)
+			impact_lines(pos, 14, 300.0)
+		"lightning":
+			lightning(pos)
+		"room":
+			_p(parts_n, {"k": "dome", "pos": pos, "r": 330.0, "life": 70, "col": Color(0.55, 0.85, 1.0)})
+		"room_swap":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 120.0, "life": 12, "col": Color(0.5, 0.85, 1.0, 0.9)})
+			for i in 6:
+				var a := randf() * TAU
+				_p(parts_a, {"k": "cube", "pos": pos + Vector2(cos(a), sin(a)) * 30.0, "vel": Vector2(cos(a), sin(a)) * randf_range(2, 6), "life": 16, "r": randf_range(8, 16), "col": Color(0.6, 0.9, 1.0), "drag": 0.9, "rot": randf() * TAU})
+		"water":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 150.0, "life": 14, "col": Color(0.3, 0.6, 1.0, 0.7)})
+			ering(pos, Color(0.6, 0.85, 1.0), 160.0, 18, 6.0)
+			for i in 16:
+				var a := randf() * TAU
+				_p(parts_n, {"k": "drop", "pos": pos, "vel": Vector2(cos(a) * randf_range(3, 11), sin(a) * randf_range(3, 8) - 4.0), "life": randi_range(18, 30), "r": randf_range(3.0, 6.0), "drag": 0.97, "rise": -0.4, "col": Color(0.55, 0.8, 1.0, 0.9)})
+		"shockwave":
+			ering(pos, Color(1, 1, 1), 220.0, 16, 9.0)
+			ering(pos, Color(0.6, 0.85, 1.0), 150.0, 20, 6.0)
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 160.0, "life": 12, "col": Color(0.7, 0.9, 1.0, 0.8)})
+			impact_lines(pos, 16, 280.0)
+		"electric":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 140.0, "life": 12, "col": Color(1.0, 0.95, 0.4, 0.85)})
+			for i in 8:
+				_p(parts_a, {"k": "zap", "pos": pos, "life": randi_range(6, 12), "r": randf_range(40, 90), "seed": randi(), "col": Color(1.0, 0.95, 0.5)})
+		"electric_small":
+			_p(parts_a, {"k": "zap", "pos": pos, "life": 5, "r": randf_range(30, 50), "seed": randi(), "col": Color(1.0, 0.95, 0.5)})
+		"parry":
+			_p(parts_a, {"k": "glow", "pos": pos, "r": 140.0, "life": 12, "col": Color(1, 1, 1, 0.9)})
+			_p(parts_a, {"k": "star", "pos": pos, "r": 120.0, "life": 10, "col": Color(1, 1, 0.9)})
+			ring(pos, Color(1, 0.95, 0.7), 150.0, 14, 7.0)
 		_:
 			spark(pos, "heavy", facing)
 
@@ -315,6 +363,46 @@ func _draw_list(cv: CanvasItem, list: Array) -> void:
 				cv.draw_colored_polygon(PackedVector2Array([a, b + nrm, b - nrm]), c)
 			"speed":
 				_draw_speed(cv, p, u)
+			"ering":
+				var c: Color = p.col
+				c.a = 1.0 - u
+				var rr := lerpf(p.r0, p.r1, sqrt(u))
+				var pts := CharData.ellipse(p.pos, rr, rr * 0.22, 32)
+				pts.append(pts[0])
+				cv.draw_polyline(pts, c, p.w * (1.0 - u * 0.6), true)
+			"bolt":
+				_draw_bolt(cv, p, u)
+			"zap":
+				var rng := RandomNumberGenerator.new()
+				rng.seed = int(p.seed) + int(p.t / 2)
+				var pts := PackedVector2Array([p.pos])
+				var a := rng.randf() * TAU
+				for k in 4:
+					a += rng.randf_range(-0.8, 0.8)
+					pts.append(pts[pts.size() - 1] + Vector2(cos(a), sin(a)) * p.r / 4.0)
+				var c: Color = p.col
+				c.a = 1.0 - u
+				cv.draw_polyline(pts, c, 2.5, true)
+			"dome":
+				var grow := minf(1.0, u * 6.0)
+				var fade := 1.0 - maxf(0.0, (u - 0.75) / 0.25)
+				var rr: float = p.r * grow
+				var c: Color = p.col
+				cv.draw_colored_polygon(CharData.ellipse(p.pos, rr, rr * 0.8, 40), Color(c.r, c.g, c.b, 0.12 * fade))
+				var edge := CharData.ellipse(p.pos, rr, rr * 0.8, 40)
+				edge.append(edge[0])
+				cv.draw_polyline(edge, Color(c.r, c.g, c.b, 0.7 * fade), 3.0, true)
+				cv.draw_arc(p.pos, rr * 0.55, PI, TAU, 24, Color(c.r, c.g, c.b, 0.25 * fade), 2.0, true)
+			"cube":
+				var c: Color = p.col
+				c.a = 1.0 - u
+				var rr: float = p.r
+				var pts := PackedVector2Array()
+				for k in 4:
+					var a: float = p.rot + p.t * 0.2 + TAU * k / 4.0
+					pts.append(p.pos + Vector2(cos(a), sin(a)) * rr)
+				pts.append(pts[0])
+				cv.draw_polyline(pts, c, 2.5, true)
 			"smoke":
 				var c: Color = p.col
 				c.a *= (1.0 - u)
@@ -366,6 +454,28 @@ func _draw_arc_slash(cv: CanvasItem, p: Dictionary, u: float) -> void:
 	var c: Color = p.col
 	c.a *= thin
 	cv.draw_colored_polygon(poly, c)
+
+
+func _draw_bolt(cv: CanvasItem, p: Dictionary, u: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(p.seed) + int(p.t / 2)
+	var top: Vector2 = p.pos + Vector2(rng.randf_range(-60, 60), -900.0)
+	var bottom := Vector2(p.pos.x, 0.0)
+	var pts := PackedVector2Array()
+	var n := 14
+	for k in n + 1:
+		var q := top.lerp(bottom, float(k) / n)
+		if k > 0 and k < n:
+			q.x += rng.randf_range(-40.0, 40.0)
+		pts.append(q)
+	var a := 1.0 - u
+	cv.draw_polyline(pts, Color(1.0, 0.85, 0.3, 0.5 * a), 22.0, true)
+	cv.draw_polyline(pts, Color(1.0, 0.95, 0.6, 0.8 * a), 10.0, true)
+	cv.draw_polyline(pts, Color(1, 1, 1, a), 4.0, true)
+	for k in range(2, n - 1, 3):
+		var b := pts[k]
+		var br := PackedVector2Array([b, b + Vector2(rng.randf_range(-70, 70), rng.randf_range(20, 80))])
+		cv.draw_polyline(br, Color(1, 0.95, 0.6, 0.7 * a), 3.0, true)
 
 
 func _draw_speed(cv: CanvasItem, p: Dictionary, u: float) -> void:

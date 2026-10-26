@@ -511,6 +511,15 @@ func _attack_logic() -> void:
 		for ev in move.get("shake_at", []):
 			if int(ev[0]) == mf:
 				fight.shake(float(ev[1]))
+		for ev in move.get("warp", []):
+			if int(ev[0]) == mf and opp:
+				fight.fx.burst("room_swap", position + Vector2(0, -150), facing)
+				var side := signf(opp.position.x - position.x)
+				if side == 0.0:
+					side = float(facing)
+				position.x = clampf(opp.position.x + side * float(ev[1]), -1020.0, 1020.0)
+				face_opponent()
+				fight.fx.burst("room_swap", position + Vector2(0, -150), facing)
 	if connected and move.get("cancel", false) and mf <= _last_active() + 14:
 		if _try_attack(true):
 			return
@@ -588,6 +597,18 @@ func can_block(h: Dictionary, from_x: float) -> bool:
 ## Returns true when the hit landed, false when it was blocked.
 func take_hit(atk_x: float, h: Dictionary, mult := 1.0) -> bool:
 	var dirx := 1.0 if position.x > atk_x else -1.0
+	# counter stance: a hit during the window triggers the counter attack instead
+	if state == "attack" and move.has("counter") and not h.get("throw", false):
+		var cw: Array = move.counter
+		if mf >= int(cw[0]) and mf <= int(cw[1]) and cd.moves.has(String(cw[2])):
+			hitstop = 8
+			if fight:
+				fight.fx.burst("parry", world_point(J.neck.lerp(J.hip, 0.3)), facing)
+				fight.impact_frame(Color(1, 1, 1), 3, 0.5)
+			Sfx.play("clash")
+			start_move(String(cw[2]))
+			invuln = 10
+			return false
 	if can_block(h, atk_x):
 		var low: bool = input.y < 0
 		set_state("block")

@@ -38,7 +38,7 @@ func setup(f, d: Dictionary) -> void:
 	hit = CharData.HIT_DEFAULTS.duplicate()
 	hit.merge(d.get("hit", {}), true)
 	hit["id"] = -1
-	if kind in ["fire_fist", "firefly", "entei", "cross", "bullet"]:
+	if kind in ["fire_fist", "firefly", "entei", "cross", "bullet", "thunder_ball", "lance", "water"]:
 		var mat := CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		material = mat
@@ -62,6 +62,15 @@ func tick(fx) -> void:
 		"firefly":
 			if t % 4 == 0:
 				fx.flame(position, Vector2.ZERO, 6.0, 10)
+		"thunder_ball", "lance":
+			if t % 3 == 0:
+				fx.burst("electric_small", position, facing)
+		"water":
+			if t % 2 == 0:
+				fx.smoke(position + Vector2(randf_range(-r, r) * 0.5, randf_range(-r, r) * 0.5), Color(0.6, 0.85, 1.0, 0.4), 0.8)
+		"black_slash":
+			if t % 2 == 0:
+				fx.smoke(position + Vector2(-facing * r * 0.5, randf_range(-r, r)), Color(0.15, 0.25, 0.18, 0.35), 1.2)
 		"bullet":
 			if t % 2 == 0:
 				fx.flame(position, Vector2(-vel.x * 0.05, 0), 7.0, 10)
@@ -108,6 +117,48 @@ func _draw() -> void:
 			_draw_entei(fade)
 		"cross":
 			_draw_cross(fade)
+		"black_slash":
+			_draw_black_slash(fade)
+		"knife":
+			var spin := t * 0.9
+			draw_set_transform(Vector2.ZERO, spin, Vector2.ONE)
+			draw_colored_polygon(PackedVector2Array([Vector2(-r, 0), Vector2(0, -r * 0.18), Vector2(r * 1.2, 0), Vector2(0, r * 0.18)]), Color(0.9, 0.92, 0.95, fade))
+			draw_rect(Rect2(-r * 0.15, -r * 0.5, r * 0.3, r), Color(0.85, 0.65, 0.2, fade))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		"thunder_ball":
+			var s := r * size
+			FxS.glow(self, Vector2.ZERO, s * 2.4, Color(0.4, 0.6, 1.0, 0.8 * fade))
+			draw_circle(Vector2.ZERO, s * 0.7, Color(0.75, 0.85, 1.0, 0.8 * fade))
+			draw_circle(Vector2.ZERO, s * 0.4, Color(1, 1, 1, fade))
+			_draw_zaps(s, fade, Color(1.0, 0.95, 0.5))
+		"lance":
+			var s := r * size
+			FxS.glow(self, Vector2.ZERO, s * 2.0, Color(1.0, 0.9, 0.3, 0.8 * fade))
+			var tip := Vector2(facing * s * 2.4, 0)
+			var tail := Vector2(-facing * s * 2.0, 0)
+			draw_colored_polygon(PackedVector2Array([tail, Vector2(0, -s * 0.35), tip, Vector2(0, s * 0.35)]), Color(1.0, 0.95, 0.6, fade))
+			draw_line(tail, tip, Color(1, 1, 1, fade), 3.0, true)
+			_draw_zaps(s * 1.2, fade, Color(1.0, 0.95, 0.5))
+		"water":
+			var s := r * size
+			FxS.glow(self, Vector2.ZERO, s * 2.0, Color(0.2, 0.5, 1.0, 0.6 * fade))
+			draw_circle(Vector2.ZERO, s, Color(0.35, 0.65, 1.0, 0.55 * fade))
+			draw_circle(Vector2(-facing * s * 0.2, -s * 0.3), s * 0.35, Color(1, 1, 1, 0.5 * fade))
+			for k in 4:
+				var off := Vector2(-facing * s * (1.0 + k * 0.45), sin(t * 0.6 + k) * s * 0.25)
+				draw_circle(off, s * (0.6 - k * 0.12), Color(0.4, 0.7, 1.0, (0.45 - k * 0.09) * fade))
+		"gust":
+			var s := r * size
+			for k in 3:
+				var rr := s * (0.6 + k * 0.3)
+				draw_arc(Vector2(-facing * k * s * 0.3, 0), rr, -1.2 + t * 0.3 * facing, 1.6 + t * 0.3 * facing, 12, Color(0.85, 1.0, 0.95, (0.6 - k * 0.15) * fade), 4.0, true)
+		"cloud":
+			var s := r * size
+			for k in 5:
+				var off := Vector2((k - 2) * s * 0.35, sin(k * 1.7) * s * 0.15)
+				draw_circle(off, s * (0.45 + 0.1 * sin(k + t * 0.1)), Color(0.18, 0.18, 0.25, 0.85 * fade))
+			if t % 20 < 4:
+				_draw_zaps(s, fade, Color(1.0, 0.95, 0.5))
 		"bullet":
 			FxS.glow(self, Vector2.ZERO, r * 2.2, Color(1.0, 0.4, 0.05, 0.8 * fade))
 			draw_colored_polygon(CharData.capsule(Vector2(-facing * r * 2.2, 0), Vector2.ZERO, r * 0.25, r * 0.6, 5), Color(1.0, 0.7, 0.2, fade))
@@ -118,6 +169,26 @@ func _draw() -> void:
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_:
 			draw_circle(Vector2.ZERO, r, Color(1, 1, 1, 0.6 * fade))
+
+
+func _draw_zaps(s: float, fade: float, c: Color) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(t / 2) * 7 + int(position.x)
+	for k in 4:
+		var a := rng.randf() * TAU
+		var pts := PackedVector2Array([Vector2(cos(a), sin(a)) * s * 0.4])
+		for j in 3:
+			a += rng.randf_range(-0.7, 0.7)
+			pts.append(pts[pts.size() - 1] + Vector2(cos(a), sin(a)) * s * 0.35)
+		draw_polyline(pts, Color(c.r, c.g, c.b, fade), 2.0, true)
+
+
+func _draw_black_slash(fade: float) -> void:
+	var s := r * size
+	var wob := sin(t * 0.8) * 2.0
+	_crescent(s * 1.35, s * 0.75, Color(0.05, 0.05, 0.08, 0.85 * fade), wob)
+	_crescent(s * 1.2, s * 0.35, Color(0.25, 0.9, 0.5, 0.75 * fade))
+	_crescent(s * 1.1, s * 0.12, Color(0.85, 1.0, 0.9, fade))
 
 
 func _crescent(rad: float, thick: float, c: Color, wobble := 0.0) -> void:

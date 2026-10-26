@@ -511,6 +511,29 @@ func flutter(cv: CanvasItem, root: Vector2, down_ang: float, length: float, w0: 
 	shape(cv, left + right, c, st, true, 2.0)
 
 
+## Long coat tails: the back panel (call from draw_back_fx) hangs behind the
+## legs, the front flap (call from draw_leg_extra for "f") over the near leg.
+func coat_tail(cv: CanvasItem, J: Dictionary, st: Dictionary, c: Color, front: bool, length := 100.0, w := 20.0) -> void:
+	var side := Vector2(1, 0).rotated(J.torso_ang)
+	var up := Vector2(0, -1).rotated(J.torso_ang)
+	var ch: float = dims.chest
+	if front:
+		flutter(cv, J.hip + side * 12.0 * ch + up * 18.0, 2.0, length + 10.0, w * 0.42, w * 0.3, c, st, 1.3, 5)
+	else:
+		var root: Vector2 = J.hip - side * 12.0 * ch + up * 30.0
+		flutter(cv, root, -12.0, length + 30.0, w, w * 0.8, c, st, 0.2, 5)
+
+
+## Open coat over the torso: a back panel and a lapel, like an open jacket.
+func coat_torso(cv: CanvasItem, st: Dictionary, L: float, ch: float, c: Color, lining := Color(0, 0, 0, 0)) -> void:
+	var back := PackedVector2Array([Vector2(-15 * ch, 8), Vector2(-2 * ch, 8), Vector2(2 * ch, -L * 0.5), Vector2(4 * ch, -L * 0.94), Vector2(-2 * ch, -L - 3), Vector2(-14 * ch, -L - 1), Vector2(-21 * ch, -L * 0.64), Vector2(-16.5 * ch, -L * 0.36)])
+	shape(cv, back, c, st)
+	var lap := PackedVector2Array([Vector2(13 * ch, 8), Vector2(16.5 * ch, 8), Vector2(15 * ch, -L * 0.2), Vector2(14.5 * ch, -L * 0.38), Vector2(19 * ch, -L * 0.6), Vector2(20 * ch, -L * 0.75), Vector2(17.5 * ch, -L * 0.92), Vector2(13 * ch, -L - 3), Vector2(9 * ch, -L * 0.8), Vector2(13 * ch, -L * 0.5)])
+	shape(cv, lap, c, st)
+	if lining.a > 0.0:
+		cv.draw_polyline(PackedVector2Array([Vector2(13 * ch, 8), Vector2(13 * ch, -L * 0.5), Vector2(9 * ch, -L * 0.8), Vector2(13 * ch, -L - 3)]), fc(lining, st), 3.0, true)
+
+
 # ---------------------------------------------------------------- renderer
 
 ## st: {flash, tint, time, far, rage, vx, vy}
