@@ -219,3 +219,42 @@ func update_fx(f, fx) -> void:
 		var R: float = dims.head
 		var tip: Vector2 = f.J.head + Vector2(R * 1.1, R * 0.56).rotated(f.J.head_ang)
 		fx.smoke(f.world_point(tip), Color(0.9, 0.9, 0.95, 0.35), 0.5)
+
+
+# ---------------------------------------------------------------- more moves
+
+func more_moves() -> void:
+	var fk := {"t": -16.0, "head": 4.0, "th_f": 95.0, "sh_f": 95.0, "th_b": -20.0, "sh_b": -30.0, "ua_f": -40.0, "fa_f": 0.0, "ua_b": -60.0, "fa_b": -30.0, "face": "shout", "fx": "diable"}
+	var fk2 := fk.duplicate()
+	fk2.th_f = 70.0
+	fk2.sh_f = 60.0
+	moves.s2_h = {
+		"title": "Diable Jambe: BIEN CUIT GRILL SHOT!",
+		"anim": [[8, {"base": "crouch", "fx": "diable"}], [3, fk], [3, fk2], [3, fk], [3, fk2], [3, fk], [3, fk2], [3, fk], [12, "idle"]],
+		"hits": multi(10, 6, 3, {"seg": "leg_f", "r": 28.0, "dmg": 18.0, "stun": 18, "bstun": 8, "kb": 2.0, "hs": 3, "spark": "fire", "sfx": "hit_m", "chip": 0.12},
+			{"dmg": 50.0, "kb": 11.0, "lift": -8.0, "kd": true, "hs": 12, "sfx": "hit_h"}),
+		"vel": [[9, 6.0]], "slide": true, "sfx": [[8, "fire"], [10, "swing_m"], [16, "swing_m"], [22, "swing_m"]], "trail": "foot_f",
+	}
+	moves.s3_h = {
+		"title": "Diable Jambe: COLLIER STRIKE!",
+		"anim": [[4, {"base": "crouch", "fx": "diable"}], [6, {"t": -30.0, "head": 10.0, "th_f": 160.0, "sh_f": 165.0, "th_b": -10.0, "sh_b": -10.0, "ua_f": -40.0, "fa_f": 0.0, "face": "shout", "fx": "diable"}],
+			[12, {"t": -30.0, "head": 10.0, "th_f": 165.0, "sh_f": 170.0, "th_b": -10.0, "sh_b": -14.0, "ua_f": -40.0, "fa_f": 0.0, "face": "shout", "fx": "diable"}], [12, "jump"]],
+		"hits": [{"f": [5, 18], "seg": "leg_f", "r": 30.0, "dmg": 110.0, "stun": 24, "bstun": 16, "kb": 4.0, "lift": -16.0, "kd": true, "hs": 12, "spark": "fire", "sfx": "hit_h"}],
+		"vel": [[4, 5.0, -18.0]], "invuln": [1, 8], "sfx": [[3, "fire"], [4, "swing_h"]], "trail": "foot_f",
+	}
+	moves.s4 = {
+		"title": "VEAU SHOT!",
+		"anim": [[6, {"base": "crouch"}], [16, {"base": "crouch", "t": 50.0, "head": -30.0, "th_f": 92.0, "sh_f": 92.0, "th_b": 10.0, "sh_b": -80.0, "ua_b": -60.0, "fa_b": -20.0, "face": "attack"}], [12, "crouch"]],
+		"hits": [{"f": [7, 20], "seg": "leg_f", "r": 24.0, "dmg": 85.0, "stun": 20, "bstun": 14, "kb": 5.0, "lvl": "low", "kd": true, "lift": -6.0, "hs": 10, "spark": "heavy", "sfx": "hit_h"}],
+		"vel": [[7, 16.0], [20, 2.0]], "slide": true, "crouch": true, "ghost": true, "sfx": [[6, "dash"]], "trail": "foot_f", "fx": [[8, "dust", [0, 0]]],
+	}
+	var dive := {"t": 40.0, "rot": 30.0, "head": -30.0, "th_f": 100.0, "sh_f": 100.0, "th_b": -30.0, "sh_b": -50.0, "ua_f": -60.0, "fa_f": -40.0, "face": "shout", "fx": "diable"}
+	moves.super2 = {
+		"title": "Diable Jambe: BOEUF BURST!",
+		"super": true,
+		"anim": [[20, {"t": -6.0, "head": -10.0, "th_f": 100.0, "sh_f": 20.0, "ua_f": -20.0, "fa_f": 20.0, "face": "angry", "fx": "diable"}],
+			[6, {"base": "crouch", "fx": "diable"}], [14, {"base": "jump", "rot": -360.0, "fx": "diable", "face": "shout"}], [6, dive], [18, dive], [14, "crouch"]],
+		"hits": [{"f": [42, 64], "seg": "leg_f", "r": 44.0, "dmg": 280.0, "stun": 40, "bstun": 22, "kb": 14.0, "lift": -12.0, "kd": true, "hs": 22, "spark": "fire", "sfx": "hit_h", "chip": 0.25}],
+		"vel": [[26, 4.0, -22.0], [40, 15.0, 14.0]], "invuln": [1, 26], "ghost": true, "trail": "foot_f", "zoom": true,
+		"sfx": [[2, "fire_big"], [26, "jump"], [40, "swing_h"]], "fx": [[60, "fire_burst", [100, -60]]], "shake_at": [[50, 10.0]],
+	}

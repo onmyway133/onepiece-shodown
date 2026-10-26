@@ -56,12 +56,19 @@ const BASE := {
 
 func _init() -> void:
 	_base_poses()
+	_base_moves()
 	setup()
+	more_moves()
 	_finalize()
 
 
 ## Override: set dims, colors, poses and moves.
 func setup() -> void:
+	pass
+
+
+## Override: extra specials (s2_h, s3_h, s4) and the second super (super2).
+func more_moves() -> void:
 	pass
 
 
@@ -91,6 +98,19 @@ func _base_poses() -> void:
 		"lose": {"base": "crouch", "t": 46.0, "head": 30.0, "ua_f": 10.0, "fa_f": 0.0, "ua_b": 0.0, "fa_b": 0.0, "face": "hurt"},
 		"intro": {"t": 0.0, "head": -4.0, "ua_f": -8.0, "fa_f": 10.0, "ua_b": 8.0, "fa_b": -8.0, "th_f": 8.0, "sh_f": 0.0, "th_b": -8.0, "sh_b": -2.0},
 		"shout": {"t": -6.0, "head": -16.0, "face": "shout"},
+	}
+
+
+## Moves every fighter shares. Characters may replace them in setup().
+func _base_moves() -> void:
+	moves.throw = {
+		"title": "THROW!",
+		"anim": [[4, {"t": 20.0, "ua_f": 80.0, "fa_f": 90.0, "ua_b": 70.0, "fa_b": 85.0, "hand_f": "open", "hand_b": "open", "face": "angry"}],
+			[8, {"t": 22.0, "ua_f": 84.0, "fa_f": 95.0, "ua_b": 76.0, "fa_b": 90.0, "face": "angry"}],
+			[6, {"t": -26.0, "head": 14.0, "ua_f": 160.0, "fa_f": 170.0, "ua_b": 150.0, "fa_b": 165.0, "th_f": 40.0, "sh_f": 10.0, "th_b": -30.0, "sh_b": -30.0, "face": "shout"}],
+			[8, {"t": 30.0, "head": -10.0, "ua_f": 70.0, "fa_f": 60.0, "ua_b": 60.0, "fa_b": 50.0, "th_f": 50.0, "sh_f": 0.0, "face": "shout"}], [12, "idle"]],
+		"hits": [{"f": [3, 6], "seg": "pts", "pts": [[30, -150], [110, -150]], "r": 46.0, "dmg": 110.0, "stun": 30, "bstun": 0, "kb": 9.0, "lift": -15.0, "kd": true, "hs": 14, "spark": "heavy", "sfx": "hit_h", "throw": true}],
+		"sfx": [[2, "swing_m"], [16, "swing_h"]], "shake_at": [[18, 6.0]],
 	}
 
 

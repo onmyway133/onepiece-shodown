@@ -374,11 +374,23 @@ func _super_input() -> bool:
 	return false
 
 
+## Back + Super, or two quarter circles back + attack: the second super.
+func _super2_input() -> bool:
+	var xr: int = int(input.x) * facing
+	if input.super and xr < 0:
+		return true
+	if (input.light or input.heavy or input.kick) and buf.motion([2, 1, 4, 2, 1, 4], 30):
+		return true
+	return false
+
+
 func _special_name() -> String:
 	var any_btn: bool = input.light or input.heavy or input.kick
 	var m := ""
 	if any_btn:
-		if buf.motion([6, 2, 3], 16):
+		if buf.motion([4, 1, 2, 3, 6], 22) and cd.moves.has("s4"):
+			m = "s4"
+		elif buf.motion([6, 2, 3], 16):
 			m = "s3"
 		elif buf.motion([2, 3, 6], 16):
 			m = "s1"
@@ -390,6 +402,8 @@ func _special_name() -> String:
 		var xr: int = int(input.x) * facing
 		if input.y > 0:
 			m = "s3"
+		elif input.y < 0 and cd.moves.has("s4"):
+			m = "s4"
 		elif xr > 0:
 			m = "s2"
 		elif xr < 0 and cd.moves.has("s1_h"):
@@ -402,6 +416,9 @@ func _special_name() -> String:
 func _try_attack(cancel := false) -> bool:
 	if not on_ground():
 		return false
+	if can_super() and cd.moves.has("super2") and _super2_input():
+		start_move("super2")
+		return true
 	if _super_input() and can_super() and cd.moves.has("super"):
 		start_move("super")
 		return true
@@ -420,12 +437,26 @@ func _try_attack(cancel := false) -> bool:
 					return true
 		return false
 	var crouching: bool = input.y < 0
+	if input.heavy and not crouching and int(input.x) != 0 and _can_throw():
+		start_move("throw")
+		return true
 	var pre := "c_" if crouching else ""
 	for b in ["heavy", "kick", "light"]:
 		if input[b] and cd.moves.has(pre + b):
 			start_move(pre + b)
 			return true
 	return false
+
+
+## Close enough to grab a grounded opponent who is not reeling.
+func _can_throw() -> bool:
+	if opp == null or not cd.moves.has("throw"):
+		return false
+	if not opp.on_ground() or opp.state in ["hit", "air_hit", "down", "getup", "ko_down", "prejump"]:
+		return false
+	if opp.state == "attack" or opp.invuln > 0:
+		return false
+	return absf(opp.position.x - position.x) < 150.0
 
 
 func _try_air_attack() -> bool:
@@ -539,6 +570,8 @@ func hurt_world() -> Array:
 # ---------------------------------------------------------------- getting hit
 
 func can_block(h: Dictionary, from_x: float) -> bool:
+	if h.get("throw", false):
+		return false
 	if not on_ground() or not (state in NEUTRAL or state == "block" or state == "land"):
 		return false
 	var away := -1 if from_x > position.x else 1

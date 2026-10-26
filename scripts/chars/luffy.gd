@@ -205,6 +205,10 @@ func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	var fx: String = p.get("fx", "")
+	if fx == "gear3":
+		_draw_giant_arm(cv, J, st, 1.0)
+	elif fx == "gear3_charge":
+		_draw_giant_arm(cv, J, st, 0.35 + 0.4 * clampf(fmod(float(st.get("time", 0.0)) * 1.6, 1.0), 0.0, 1.0))
 	if fx == "gatling" or fx == "jet":
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(st.get("time", 0.0) * 60.0)
@@ -228,7 +232,7 @@ func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary)
 
 func update_fx(f, fx) -> void:
 	var p: Dictionary = f.pose
-	if String(p.get("fx", "")) in ["gear2", "jet"] and Engine.get_physics_frames() % 3 == 0:
+	if String(p.get("fx", "")) in ["gear2", "jet", "gear3", "gear3_charge"] and Engine.get_physics_frames() % 3 == 0:
 		var pos: Vector2 = f.world_point(f.J.neck) + Vector2(randf_range(-25, 25), randf_range(-10, 30))
 		fx.smoke(pos, Color(1, 1, 1, 0.55), 1.2)
 
@@ -237,3 +241,65 @@ func tint_for(p: Dictionary) -> Color:
 	if String(p.get("fx", "")) in ["gear2", "jet"]:
 		return Color(1.0, 0.45, 0.5, 0.35)
 	return Color(0, 0, 0, 0)
+
+
+# ---------------------------------------------------------------- more moves
+
+func more_moves() -> void:
+	moves.s2_h = {
+		"title": "Gomu Gomu no MUCHI!",
+		"anim": [[6, {"base": "crouch", "t": 20.0, "th_f": 60.0, "sh_f": 30.0}],
+			[4, {"base": "crouch", "t": 30.0, "head": -20.0, "th_f": 88.0, "sh_f": 90.0, "sl_f": 3.6, "face": "shout"}],
+			[8, {"base": "crouch", "t": 30.0, "head": -20.0, "th_f": 86.0, "sh_f": 88.0, "sl_f": 3.8, "face": "shout"}],
+			[6, {"base": "crouch", "t": 26.0, "th_f": 80.0, "sh_f": 70.0, "sl_f": 1.6}], [12, "crouch"]],
+		"hits": [{"f": [8, 18], "seg": "leg_f", "r": 22.0, "dmg": 90.0, "stun": 20, "bstun": 14, "kb": 6.0, "lvl": "low", "kd": true, "lift": -5.0, "hs": 10, "spark": "heavy", "sfx": "hit_h", "chip": 0.08}],
+		"sfx": [[5, "stretch"], [7, "swing_h"]], "trail": "foot_f", "crouch": true,
+	}
+	moves.s3_h = {
+		"title": "Gomu Gomu no ROCKET!",
+		"anim": [[10, {"t": -20.0, "ua_f": 150.0, "fa_f": 160.0, "st_f": 2.6, "ua_b": 140.0, "fa_b": 150.0, "st_b": 2.6, "face": "angry"}],
+			[6, {"rot": 70.0, "t": 0.0, "head": -60.0, "ua_f": 175.0, "fa_f": 178.0, "ua_b": 172.0, "fa_b": 176.0, "th_f": 4.0, "sh_f": 0.0, "th_b": -4.0, "sh_b": 0.0, "face": "shout"}],
+			[16, {"rot": 80.0, "t": 0.0, "head": -70.0, "ua_f": 178.0, "fa_f": 179.0, "ua_b": 175.0, "fa_b": 178.0, "th_f": 4.0, "sh_f": 0.0, "th_b": -4.0, "sh_b": 0.0, "face": "shout"}],
+			[12, "jump"]],
+		"hits": [{"f": [11, 30], "seg": "body", "r": 42.0, "dmg": 120.0, "stun": 24, "bstun": 16, "kb": 10.0, "lift": -10.0, "kd": true, "hs": 13, "spark": "heavy", "sfx": "hit_h", "chip": 0.1}],
+		"vel": [[10, 18.0, -9.0]], "ghost": true, "sfx": [[2, "stretch"], [10, "dash"]],
+	}
+	moves.s4 = {
+		"title": "Gomu Gomu no STAMP!",
+		"anim": [[6, {"base": "crouch"}], [8, {"base": "jump", "t": -10.0, "th_f": 120.0, "sh_f": 60.0}],
+			[4, {"t": -24.0, "head": 10.0, "th_f": 100.0, "sh_f": 100.0, "sl_f": 2.4, "th_b": -10.0, "sh_b": -20.0, "ua_f": 40.0, "fa_f": 60.0, "face": "shout"}],
+			[10, {"t": -24.0, "head": 10.0, "th_f": 100.0, "sh_f": 102.0, "sl_f": 2.6, "th_b": -10.0, "sh_b": -20.0, "ua_f": 40.0, "fa_f": 60.0, "face": "shout"}], [10, "idle"]],
+		"hits": [{"f": [16, 26], "seg": "foot_f", "r": 28.0, "dmg": 100.0, "stun": 22, "bstun": 16, "kb": 9.0, "lvl": "high", "hs": 11, "spark": "heavy", "sfx": "hit_h", "chip": 0.08}],
+		"vel": [[6, 6.0, -12.0]], "sfx": [[5, "jump"], [14, "stretch"], [15, "swing_h"]], "trail": "foot_f",
+	}
+	moves.super2 = {
+		"title": "Gear Third: GIGANT PISTOL!",
+		"super": true,
+		"anim": [[24, {"t": -10.0, "head": 0.0, "ua_f": -70.0, "fa_f": -20.0, "ua_b": 60.0, "fa_b": 120.0, "face": "angry", "fx": "gear3_charge"}],
+			[16, {"t": -18.0, "head": 4.0, "ua_f": -110.0, "fa_f": -100.0, "st_f": 1.4, "ua_b": 70.0, "fa_b": 140.0, "face": "angry", "fx": "gear3"}],
+			[5, {"t": 22.0, "ua_f": 90.0, "fa_f": 90.0, "st_f": 3.2, "ua_b": -30.0, "fa_b": 20.0, "th_f": 50.0, "face": "shout", "fx": "gear3"}],
+			[16, {"t": 22.0, "ua_f": 90.0, "fa_f": 90.0, "st_f": 3.4, "ua_b": -30.0, "fa_b": 20.0, "th_f": 50.0, "face": "shout", "fx": "gear3"}],
+			[16, "idle"]],
+		"hits": [{"f": [42, 58], "seg": "pts", "pts": [[60, -170], [330, -170]], "r": 95.0, "dmg": 300.0, "stun": 40, "bstun": 24, "kb": 22.0, "lift": -12.0, "kd": true, "hs": 22, "spark": "heavy", "sfx": "hit_h", "chip": 0.25}],
+		"sfx": [[2, "steam"], [20, "aura"], [40, "swing_h"]], "invuln": [1, 40], "zoom": true, "shake_at": [[44, 14.0]],
+	}
+
+
+## Gear Third: the inflated giant arm and fist.
+func _draw_giant_arm(cv: CanvasItem, J: Dictionary, st: Dictionary, grow: float) -> void:
+	var el: Vector2 = J.elbow_f
+	var hand: Vector2 = J.hand_f
+	var d := (hand - el).normalized()
+	if d == Vector2.ZERO:
+		d = Vector2.RIGHT
+	var big := 70.0 * grow
+	shape(cv, muscle(J.shoulder, hand, 16.0, 26.0 * grow, Vector2(0.7, 0.2), Vector2(0.6, 0.15)), col.skin, st)
+	var c := hand + d * big * 0.55
+	var fist := ellipse(c, big, big * 0.85, 24, d.angle())
+	shape(cv, fist, col.skin, st, true, 3.0)
+	var n := Vector2(-d.y, d.x)
+	var line := shadow_of(fc(col.skin, st)).darkened(0.3)
+	for k in 3:
+		var y := (float(k) - 1.0) * big * 0.42
+		cv.draw_line(c + d * big * 0.45 + n * y, c + d * big * 0.9 + n * y * 0.9, line, 3.0, true)
+	shape(cv, ellipse(c - d * big * 0.1 - n * big * 0.62, big * 0.42, big * 0.24, 14, d.angle() + 0.3), col.skin, st, true, 2.6)

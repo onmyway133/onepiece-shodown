@@ -36,13 +36,18 @@ class Showcase:
 		var motions := [
 			[[0, -1], [1, -1], [1, 0], "light"], [[0, -1], [1, -1], [1, 0], "heavy"],
 			[[0, -1], [-1, -1], [-1, 0], "light"], [[1, 0], [0, -1], [1, -1], "light"], ["super"],
+			[[0, -1], [-1, -1], [-1, 0], "heavy"], [[1, 0], [0, -1], [1, -1], "heavy"],
+			[[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], "light"], ["super:-1"],
 		]
 		for m in motions:
 			for step in m:
 				var d := Controls.empty()
 				if step is String:
-					d[step] = true
-					d[step + "_held"] = true
+					var parts: PackedStringArray = String(step).split(":")
+					d[parts[0]] = true
+					d[parts[0] + "_held"] = true
+					if parts.size() > 1:
+						d.x = int(parts[1])
 					seq.append([d, 1])
 				else:
 					d.x = step[0]
@@ -380,6 +385,8 @@ func _resolve_hits() -> void:
 		if not o.hittable():
 			continue
 		for ah in f.active_hits():
+			if ah.h.get("throw", false) and (not o.on_ground() or o.state in ["hit", "air_hit"]):
+				continue
 			var hurt := o.hurt_world()
 			var best := []
 			for c in hurt:

@@ -259,6 +259,51 @@ func draw_back_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) 
 
 
 func update_fx(f, fx) -> void:
+	if String(f.pose.get("fx", "")) == "aura_g" and Engine.get_physics_frames() % 2 == 0:
+		fx.smoke(f.world_point(f.J.hip) + Vector2(randf_range(-60, 60), randf_range(-150, 20)), Color(0.3, 0.8, 0.45, 0.45), 1.4)
 	if String(f.pose.get("fx", "")) == "ashura" and Engine.get_physics_frames() % 2 == 0:
 		var pos: Vector2 = f.world_point(f.J.hip) + Vector2(randf_range(-60, 60), randf_range(-150, 20))
 		fx.smoke(pos, Color(0.45, 0.2, 0.7, 0.45), 1.6)
+
+
+# ---------------------------------------------------------------- more moves
+
+func more_moves() -> void:
+	moves.s2_h = {
+		"title": "Nitoryu: TAKA NAMI!",
+		"anim": [[12, {"t": -10.0, "ua_f": 120.0, "fa_f": 200.0, "sa_f": 250.0, "ua_b": 110.0, "fa_b": 190.0, "sa_b": 240.0, "face": "angry"}],
+			[4, {"base": "crouch", "t": 40.0, "head": -20.0, "ua_f": 60.0, "fa_f": 40.0, "sa_f": 10.0, "ua_b": 50.0, "fa_b": 30.0, "sa_b": 20.0, "face": "shout"}],
+			[12, {"base": "crouch", "t": 40.0, "head": -20.0, "ua_f": 60.0, "fa_f": 40.0, "sa_f": 10.0, "ua_b": 50.0, "fa_b": 30.0, "sa_b": 20.0, "face": "shout"}], [12, "idle"]],
+		"proj": [[14, {"type": "wave", "pos": [110, -40], "vel": [10, 0], "r": 44.0, "life": 70, "hp": 2,
+			"hit": {"dmg": 80.0, "stun": 20, "bstun": 14, "kb": 5.0, "lvl": "low", "lift": -8.0, "kd": true, "hs": 9, "spark": "slash", "sfx": "slash_h", "chip": 0.1}}]],
+		"sfx": [[12, "swing_h"], [13, "wind"]], "trail": "sword_f", "fx": [[14, "dust", [110, 0]]],
+	}
+	moves.s3_h = {
+		"title": "Santoryu: TORA GARI!",
+		"anim": [[6, {"base": "crouch"}], [10, {"base": "jump", "t": -10.0, "ua_f": 160.0, "fa_f": 200.0, "sa_f": 230.0, "ua_b": 150.0, "fa_b": 190.0, "sa_b": 220.0, "face": "angry"}],
+			[4, {"t": 40.0, "head": -20.0, "ua_f": 80.0, "fa_f": 60.0, "sa_f": 40.0, "ua_b": 70.0, "fa_b": 50.0, "sa_b": 30.0, "th_f": 60.0, "sh_f": 0.0, "face": "shout"}],
+			[14, {"t": 40.0, "head": -20.0, "ua_f": 70.0, "fa_f": 40.0, "sa_f": 20.0, "ua_b": 60.0, "fa_b": 30.0, "sa_b": 10.0, "th_f": 60.0, "sh_f": 0.0, "face": "shout"}], [12, "crouch"]],
+		"hits": [{"f": [16, 28], "seg": "sword_f", "r": 30.0, "dmg": 140.0, "stun": 26, "bstun": 18, "kb": 6.0, "lvl": "high", "kd": true, "hs": 15, "spark": "slash", "sfx": "slash_h", "chip": 0.12}],
+		"vel": [[6, 8.0, -16.0]], "sfx": [[5, "jump"], [15, "swing_h"]], "trail": "sword_f", "shake_at": [[24, 6.0]],
+	}
+	moves.s4 = {
+		"title": "Ittoryu: SHISHI SONSON!",
+		"anim": [[14, {"t": 20.0, "head": -10.0, "ua_f": 30.0, "fa_f": 60.0, "sa_f": 250.0, "ua_b": 20.0, "fa_b": 80.0, "sa_b": 260.0, "th_f": 70.0, "sh_f": 0.0, "th_b": -40.0, "sh_b": -40.0, "face": "closed"}],
+			[6, {"t": 34.0, "head": -20.0, "ua_f": 95.0, "fa_f": 92.0, "sa_f": 92.0, "ua_b": -40.0, "fa_b": -20.0, "sa_b": 200.0, "th_f": 80.0, "sh_f": 0.0, "th_b": -60.0, "sh_b": -70.0, "face": "attack"}],
+			[18, {"t": 10.0, "head": -10.0, "ua_f": 100.0, "fa_f": 95.0, "sa_f": 95.0, "ua_b": -30.0, "fa_b": -10.0, "sa_b": 200.0, "th_f": 50.0, "sh_f": -10.0, "face": "angry"}], [10, "idle"]],
+		"hits": [{"f": [15, 20], "seg": "pts", "pts": [[-60, -140], [100, -140]], "r": 50.0, "dmg": 150.0, "stun": 28, "bstun": 18, "kb": 6.0, "lift": -10.0, "kd": true, "hs": 18, "spark": "slash", "sfx": "slash_h", "chip": 0.12}],
+		"vel": [[15, 30.0], [21, 2.0]], "slide": true, "pass": true, "ghost": true, "sfx": [[13, "dash"], [15, "swing_h"]], "trail": "sword_f", "fx": [[21, "slash_x", [-140, -140]]],
+	}
+	var spin := []
+	for k in 4:
+		spin.append([6, {"t": 30.0, "rot": -180.0 * (k + 1), "ua_f": 90.0, "fa_f": 90.0, "sa_f": 180.0 * ((k + 1) % 2), "ua_b": 90.0, "fa_b": 90.0, "sa_b": 180.0 * (k % 2), "face": "shout"}])
+	moves.super2 = {
+		"title": "Santoryu Ogi: SANZEN SEKAI!",
+		"super": true,
+		"anim": [[22, {"t": 10.0, "head": -10.0, "ua_f": 60.0, "fa_f": 160.0, "sa_f": 200.0, "ua_b": 50.0, "fa_b": 150.0, "sa_b": 190.0, "face": "angry", "fx": "aura_g"}]] + spin
+			+ [[20, {"t": 30.0, "head": -20.0, "ua_f": 100.0, "fa_f": 95.0, "sa_f": 95.0, "ua_b": 80.0, "fa_b": 70.0, "sa_b": 70.0, "th_f": 70.0, "sh_f": 0.0, "th_b": -50.0, "sh_b": -60.0, "face": "shout"}], [12, "idle"]],
+		"hits": multi(24, 8, 3, {"seg": "pts", "pts": [[-40, -150], [140, -150]], "r": 80.0, "dmg": 18.0, "stun": 26, "bstun": 9, "kb": 1.0, "hs": 3, "spark": "slash", "sfx": "slash_l", "chip": 0.15},
+			{"dmg": 140.0, "kb": 14.0, "lift": -14.0, "kd": true, "hs": 20, "sfx": "slash_h"}),
+		"vel": [[23, 14.0], [47, 2.0]], "slide": true, "pass": true, "invuln": [1, 24], "trail": "sword_f", "zoom": true,
+		"sfx": [[2, "aura"], [22, "dash"], [24, "swing_h"], [30, "swing_h"], [36, "swing_h"], [44, "slash_h"]], "fx": [[47, "slash_x", [-80, -150]]],
+	}

@@ -37,7 +37,7 @@ func _init() -> void:
 	# every move of every character resolves its poses and hits
 	for id in ["luffy", "zoro", "sanji", "ace"]:
 		var cd: CharData = load("res://scripts/chars/%s.gd" % id).new()
-		for k in ["light", "heavy", "kick", "c_light", "c_heavy", "c_kick", "j_light", "j_heavy", "j_kick", "s1", "s1_h", "s2", "s3", "super"]:
+		for k in ["light", "heavy", "kick", "c_light", "c_heavy", "c_kick", "j_light", "j_heavy", "j_kick", "s1", "s1_h", "s2", "s2_h", "s3", "s3_h", "s4", "super", "super2", "throw"]:
 			check(cd.moves.has(k), "%s has %s" % [id, k])
 			if cd.moves.has(k):
 				var m: Dictionary = cd.moves[k]

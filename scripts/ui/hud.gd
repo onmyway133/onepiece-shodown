@@ -404,4 +404,5 @@ func _draw_cutin(font: Font) -> void:
 	var tx := 560.0 if side == 1 else 80.0
 	var slide := (1.0 - minf(1.0, u * 5.0)) * 300.0 * side
 	_text(font, Vector2(tx + slide, cy - 20), f.cd.display_name, 46, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_LEFT, 650.0, 10)
-	_text(font, Vector2(tx + slide, cy + 40), cutin.title, 50, Color(1, 0.85, 0.25, a), HORIZONTAL_ALIGNMENT_LEFT, 650.0, 10)
+	var ts := clampi(int(50.0 * 24.0 / maxf(24.0, float(String(cutin.title).length()))), 30, 50)
+	_text(font, Vector2(tx + slide, cy + 40), cutin.title, ts, Color(1, 0.85, 0.25, a), HORIZONTAL_ALIGNMENT_LEFT, 650.0, 10)

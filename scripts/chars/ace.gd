@@ -228,3 +228,57 @@ func update_fx(f, fx) -> void:
 		"sun":
 			if frame % 2 == 0:
 				fx.flame(f.world_point(f.J.hand_f + Vector2(randf_range(-80, 80), -90 + randf_range(-80, 80))), Vector2(0, -2), randf_range(10, 22), 20)
+
+
+# ---------------------------------------------------------------- more moves
+
+func more_moves() -> void:
+	var bul := {"type": "bullet", "r": 14.0, "life": 60, "hit": {"dmg": 20.0, "stun": 14, "bstun": 8, "kb": 2.5, "hs": 4, "spark": "fire", "sfx": "fire", "chip": 0.15}}
+	var shots := []
+	var spread := [-0.4, 0.3, -0.2, 0.4, 0.0]
+	for k in 5:
+		var d: Dictionary = bul.duplicate(true)
+		d["pos"] = [110, -160 + (k % 2) * 14 - 7]
+		d["vel"] = [17, spread[k]]
+		shots.append([12 + k * 3, d])
+	var aim := {"t": 6.0, "ua_f": 92.0, "fa_f": 92.0, "ua_b": -20.0, "fa_b": 20.0, "face": "angry", "fx": "fire_f", "hand_f": "open"}
+	var aim2 := aim.duplicate()
+	aim2.t = 12.0
+	aim2.face = "attack"
+	moves.s2_h = {
+		"title": "HIGAN!",
+		"anim": [[10, aim], [16, aim2], [12, "idle"]],
+		"proj": shots, "sfx": [[12, "fire"], [15, "fire"], [18, "fire"], [21, "fire"], [24, "fire"]],
+	}
+	moves.s3_h = {
+		"title": "KAGERO!",
+		"anim": [[10, {"base": "crouch", "ua_f": 40.0, "fa_f": 100.0, "fx": "fire_f", "face": "angry"}],
+			[6, {"t": 30.0, "head": -16.0, "ua_f": 80.0, "fa_f": 60.0, "ua_b": -30.0, "fa_b": 10.0, "th_f": 46.0, "face": "shout", "fx": "fire_f", "hand_f": "open"}],
+			[16, {"t": 30.0, "head": -16.0, "ua_f": 80.0, "fa_f": 60.0, "ua_b": -30.0, "fa_b": 10.0, "th_f": 46.0, "face": "shout", "hand_f": "open"}], [12, "idle"]],
+		"hits": multi(12, 4, 4, {"seg": "pts", "pts": [[200, -280], [200, -30]], "r": 70.0, "dmg": 28.0, "stun": 20, "bstun": 9, "kb": 2.0, "lift": -10.0, "hs": 4, "spark": "fire", "sfx": "fire", "chip": 0.15},
+			{"dmg": 45.0, "lift": -15.0, "kb": 7.0, "kd": true, "hs": 10, "sfx": "hit_h"}),
+		"fx": [[12, "fire_burst", [200, -60]], [16, "fire_burst", [200, -190]]], "sfx": [[11, "fire_big"]],
+	}
+	moves.s4 = {
+		"title": "HIDARUMA!",
+		"anim": [[12, {"t": 0.0, "ua_f": 120.0, "fa_f": 150.0, "ua_b": 110.0, "fa_b": 140.0, "face": "closed", "fx": "fire_f"}], [14, {"t": 10.0, "ua_f": 95.0, "fa_f": 80.0, "ua_b": 60.0, "fa_b": 60.0, "face": "grin"}], [12, "idle"]],
+		"proj": [[14, {"type": "entei", "pos": [90, -200], "vel": [2.4, 0.4], "r": 40.0, "size": 0.5, "life": 150, "hp": 2, "hits": 2, "every": 20,
+			"hit": {"dmg": 60.0, "stun": 22, "bstun": 14, "kb": 5.0, "lift": -8.0, "kd": true, "hs": 9, "spark": "fire", "sfx": "hit_h", "chip": 0.15}}]],
+		"sfx": [[12, "fire_big"]],
+	}
+	var fists := []
+	for k in 4:
+		fists.append([16 + k * 7, {"type": "fire_fist", "pos": [110, -190 + (k % 2) * 60], "vel": [14, 0], "r": 40.0, "life": 80, "hp": 2,
+			"hit": {"dmg": 45.0, "stun": 26, "bstun": 10, "kb": 3.0, "hs": 6, "spark": "fire", "sfx": "hit_m", "chip": 0.2}}])
+	fists.append([48, {"type": "fire_fist", "pos": [120, -170], "vel": [12, 0], "r": 80.0, "size": 1.4, "life": 90, "hp": 6,
+		"hit": {"dmg": 140.0, "stun": 30, "bstun": 16, "kb": 14.0, "lift": -12.0, "kd": true, "hs": 18, "spark": "fire", "sfx": "hit_h", "chip": 0.25}}])
+	var p1 := {"t": 22.0, "head": -10.0, "ua_f": 92.0, "fa_f": 92.0, "ua_b": -30.0, "fa_b": 10.0, "th_f": 46.0, "face": "shout", "fx": "fire_f"}
+	var p2 := {"t": 22.0, "head": -10.0, "ua_f": -30.0, "fa_f": 10.0, "ua_b": 92.0, "fa_b": 92.0, "th_f": 46.0, "face": "shout", "fx": "fire_f"}
+	moves.super2 = {
+		"title": "HIKEN: FIRE FIST BARRAGE!",
+		"super": true,
+		"anim": [[14, {"t": -14.0, "ua_f": -70.0, "fa_f": 40.0, "ua_b": 50.0, "fa_b": 120.0, "face": "angry", "fx": "fire_f"}], [7, p1], [7, p2], [7, p1], [7, p2],
+			[6, {"t": -20.0, "ua_f": -80.0, "fa_f": 30.0, "ua_b": 50.0, "fa_b": 120.0, "face": "angry", "fx": "fire_f"}], [14, p1], [12, "idle"]],
+		"proj": fists, "invuln": [1, 16], "zoom": true,
+		"sfx": [[2, "fire_big"], [16, "fire"], [23, "fire"], [30, "fire"], [37, "fire"], [47, "fire_big"]], "fx": [[48, "fire_burst", [110, -170]]], "shake_at": [[48, 8.0]],
+	}

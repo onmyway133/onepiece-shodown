@@ -1,4 +1,6 @@
 extends Node2D
+
+const FxS := preload("res://scripts/fight/fx.gd")
 ## A moving attack (wind blades, fire fists, fireflies...).
 ## def: {type, pos:[x,y] (local to owner), vel:[x,y], r, life, hp, hits, every, hit:{...}}
 
@@ -36,6 +38,10 @@ func setup(f, d: Dictionary) -> void:
 	hit = CharData.HIT_DEFAULTS.duplicate()
 	hit.merge(d.get("hit", {}), true)
 	hit["id"] = -1
+	if kind in ["fire_fist", "firefly", "entei", "cross", "bullet"]:
+		var mat := CanvasItemMaterial.new()
+		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		material = mat
 
 
 func tick(fx) -> void:
@@ -56,6 +62,12 @@ func tick(fx) -> void:
 		"firefly":
 			if t % 4 == 0:
 				fx.flame(position, Vector2.ZERO, 6.0, 10)
+		"bullet":
+			if t % 2 == 0:
+				fx.flame(position, Vector2(-vel.x * 0.05, 0), 7.0, 10)
+		"wave":
+			if t % 2 == 0:
+				fx.smoke(position + Vector2(randf_range(-r, r), r * 0.6), Color(0.85, 0.95, 1.0, 0.45), 1.3)
 		"wind":
 			if t % 3 == 0:
 				fx.smoke(position + Vector2(-facing * r * 0.5, randf_range(-r, r) * 0.5), Color(0.85, 1.0, 0.95, 0.3), 1.0)
@@ -88,6 +100,7 @@ func _draw() -> void:
 			_draw_fire_fist(fade)
 		"firefly":
 			var pulse := 1.0 + 0.25 * sin(t * 0.5)
+			FxS.glow(self, Vector2.ZERO, 40.0 * pulse, Color(1.0, 0.45, 0.05, 0.7 * fade))
 			draw_circle(Vector2.ZERO, 16.0 * pulse, Color(1.0, 0.5, 0.05, 0.35 * fade))
 			draw_circle(Vector2.ZERO, 9.0, Color(1.0, 0.75, 0.2, 0.8 * fade))
 			draw_circle(Vector2.ZERO, 4.5, Color(1.0, 1.0, 0.8, fade))
@@ -95,6 +108,14 @@ func _draw() -> void:
 			_draw_entei(fade)
 		"cross":
 			_draw_cross(fade)
+		"bullet":
+			FxS.glow(self, Vector2.ZERO, r * 2.2, Color(1.0, 0.4, 0.05, 0.8 * fade))
+			draw_colored_polygon(CharData.capsule(Vector2(-facing * r * 2.2, 0), Vector2.ZERO, r * 0.25, r * 0.6, 5), Color(1.0, 0.7, 0.2, fade))
+			draw_circle(Vector2.ZERO, r * 0.35, Color(1, 1, 0.85, fade))
+		"wave":
+			draw_set_transform(Vector2(0, -r * 0.4), -0.35 * facing, Vector2(0.75, 1.5))
+			_draw_wind(fade)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_:
 			draw_circle(Vector2.ZERO, r, Color(1, 1, 1, 0.6 * fade))
 
@@ -126,6 +147,7 @@ func _draw_wind(fade: float) -> void:
 
 func _draw_fire_fist(fade: float) -> void:
 	var s := r * size
+	FxS.glow(self, Vector2(-facing * s * 0.6, 0), s * 2.6, Color(1.0, 0.3, 0.0, 0.7 * fade))
 	var flick := sin(t * 1.3) * 0.08 + 1.0
 	draw_circle(Vector2.ZERO, s * 1.25 * flick, Color(1.0, 0.25, 0.0, 0.35 * fade))
 	draw_circle(Vector2(facing * s * 0.1, 0), s * 0.95, Color(1.0, 0.5, 0.05, 0.7 * fade))
@@ -142,6 +164,7 @@ func _draw_fire_fist(fade: float) -> void:
 
 func _draw_entei(fade: float) -> void:
 	var s := r * size
+	FxS.glow(self, Vector2.ZERO, s * 2.6, Color(1.0, 0.3, 0.0, 0.8 * fade))
 	var flick := 1.0 + sin(t * 0.9) * 0.05
 	draw_circle(Vector2.ZERO, s * 1.35 * flick, Color(1.0, 0.2, 0.0, 0.25 * fade))
 	draw_circle(Vector2.ZERO, s * 1.1, Color(1.0, 0.45, 0.0, 0.6 * fade))

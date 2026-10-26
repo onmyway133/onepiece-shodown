@@ -78,6 +78,8 @@ func get_input(f) -> Dictionary:
 			return _press("heavy", 0, -1)
 	# super
 	if f.can_super() and dist < 300.0 and randf() < 0.5:
+		if f.cd.moves.has("super2") and randf() < 0.5:
+			return _press("super", -fwd)
 		return _press("super")
 	if not f.on_ground():
 		if dist < 220.0 and randf() < 0.6:
@@ -115,6 +117,17 @@ func get_input(f) -> Dictionary:
 		hold_t = 14
 		return _inp(fwd)
 	# close range
+	if dist < 140.0 and o.on_ground() and o.state in ["idle", "walk_f", "walk_b", "crouch", "guard_hold", "block"] and randf() < 0.18 + 0.08 * level:
+		return _press("heavy", fwd)
+	if r < 0.08 and f.cd.moves.has("s4"):
+		return _press("special", 0, -1)
+	if r < 0.14 and level >= 1:
+		# heavy versions need the real motions
+		if randf() < 0.5 and f.cd.moves.has("s2_h"):
+			queue = [[_inp(0, -1), 2], [_inp(-fwd, -1), 2], [_inp(-fwd), 1], [_press("heavy", -fwd), 1]]
+		elif f.cd.moves.has("s3_h"):
+			queue = [[_inp(fwd), 2], [_inp(0, -1), 2], [_inp(fwd, -1), 1], [_press("heavy", fwd, -1), 1]]
+		return _inp()
 	if r < 0.25:
 		queue = [[_inp(), 3], [_press("heavy"), 1]] if randf() < AGGRO[level] else []
 		return _press("light")

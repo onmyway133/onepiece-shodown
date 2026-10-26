@@ -57,8 +57,10 @@ func show_moves(a: CharData, b: CharData) -> void:
 
 static func move_lines(cd: CharData) -> Array:
 	var out := []
-	var names := {"s1": "QCF + Attack   or  Special", "s1_h": "QCF + Heavy   or  Back + Special", "s2": "QCB + Attack   or  Forward + Special", "s3": "DP + Attack   or  Up + Special", "super": "Super button (rage MAX)"}
-	for k in ["s1", "s1_h", "s2", "s3", "super"]:
+	var names := {"s1": "QCF + Attack   or  Special", "s1_h": "QCF + Heavy   or  Back + Special", "s2": "QCB + Attack   or  Forward + Special",
+		"s2_h": "QCB + Heavy", "s3": "DP + Attack   or  Up + Special", "s3_h": "DP + Heavy", "s4": "HCF + Attack   or  Down + Special",
+		"super": "Super button (rage MAX)", "super2": "Back + Super (rage MAX)", "throw": "Close: Forward or Back + Heavy"}
+	for k in ["s1", "s1_h", "s2", "s2_h", "s3", "s3_h", "s4", "super", "super2", "throw"]:
 		if cd.moves.has(k):
 			out.append([String(cd.moves[k].get("title", k)), names[k]])
 	return out
@@ -97,8 +99,8 @@ func _draw_moves(font: Font) -> void:
 		_text(font, Vector2(x, 160), cd.display_name, 40, cd.accent.lightened(0.3), 520.0, HORIZONTAL_ALIGNMENT_LEFT)
 		var y := 205.0
 		for line in move_lines(cd):
-			draw_string(body, Vector2(x, y), line[0], HORIZONTAL_ALIGNMENT_LEFT, 540, 24, Color(1, 0.9, 0.6))
-			draw_string(body, Vector2(x + 16, y + 26), line[1], HORIZONTAL_ALIGNMENT_LEFT, 540, 19, Color(0.85, 0.85, 0.9))
-			y += 66.0
-	var help := "Light / Heavy / Kick: normal attacks.   Hold back to block (crouch for low).   Tap forward twice to dash.\nQCF = down, down-forward, forward.   QCB = down, down-back, back.   DP = forward, down, down-forward."
-	draw_multiline_string(body, Vector2(80, 600), help, HORIZONTAL_ALIGNMENT_LEFT, 1120, 18, -1, Color(0.8, 0.8, 0.85))
+			draw_string(body, Vector2(x, y), line[0], HORIZONTAL_ALIGNMENT_LEFT, 540, 20, Color(1, 0.9, 0.6))
+			draw_string(body, Vector2(x + 16, y + 19), line[1], HORIZONTAL_ALIGNMENT_LEFT, 540, 16, Color(0.85, 0.85, 0.9))
+			y += 40.0
+	var help := "Light / Heavy / Kick: normal attacks.   Hold back to block (crouch for low).   Tap forward twice to dash.\nQCF = down, down-forward, forward.   QCB = down, down-back, back.   DP = forward, down, down-forward.   HCF = back, down, forward."
+	draw_multiline_string(body, Vector2(80, 625), help, HORIZONTAL_ALIGNMENT_LEFT, 1120, 18, -1, Color(0.8, 0.8, 0.85))
