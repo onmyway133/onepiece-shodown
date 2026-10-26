@@ -3,7 +3,9 @@ extends Control
 
 const Rig := preload("res://scripts/fight/rig.gd")
 
-const CARD := Vector2(150, 170)
+const CARD := Vector2(118, 146)
+const COLS := 4
+const GAP := Vector2(14, 44)
 
 var cursors := [0, 1]
 var picked := [false, false]
@@ -22,17 +24,20 @@ func _ready() -> void:
 	cursors[0] = maxi(0, Game.ROSTER.find(Game.p1_char))
 	cursors[1] = maxi(0, Game.ROSTER.find(Game.p2_char))
 	var n := Game.ROSTER.size()
-	var x0 := 640.0 - n * (CARD.x + 16) / 2.0 + 8.0
+	var cols := mini(n, COLS)
+	var x0 := 640.0 - (cols * (CARD.x + GAP.x) - GAP.x) / 2.0
 	for i in n:
 		var clip := Control.new()
 		clip.clip_contents = true
-		clip.position = Vector2(x0 + i * (CARD.x + 16), 470)
+		clip.position = Vector2(x0 + (i % COLS) * (CARD.x + GAP.x), 150 + (i / COLS) * (CARD.y + GAP.y))
 		clip.size = CARD
 		add_child(clip)
 		var r := Rig.new()
 		r.cd = Game.char_data(Game.ROSTER[i])
-		r.position = Vector2(CARD.x * 0.5 - 4, 300)
-		r.scale = Vector2(1.25, 1.25)
+		r.scale = Vector2(1.08, 1.08)
+		# frame each portrait on the face, whatever the fighter's height
+		var J: Dictionary = r.cd.joints(r.cd.pose("idle"))
+		r.position = Vector2(CARD.x * 0.5 - 4 - J.head.x * 1.08, 50.0 - J.head.y * 1.08)
 		r.st = {"time": 0.0}
 		clip.add_child(r)
 		r.set_pose(r.cd.pose("idle"))
@@ -126,6 +131,12 @@ func _chars_input() -> void:
 		elif _pressed(p, "right"):
 			cursors[who] = (cursors[who] + 1) % n
 			Sfx.play("menu_move", -8.0)
+		elif (_pressed(p, "up") or _pressed(p, "down")) and n > COLS:
+			var c: int = cursors[who] + (COLS if _pressed(p, "down") else -COLS)
+			cursors[who] = posmod(c, int(ceil(n / float(COLS))) * COLS)
+			if cursors[who] >= n:
+				cursors[who] = n - 1
+			Sfx.play("menu_move", -8.0)
 		elif _pressed(p, "light") or _pressed(p, "heavy") or _pressed(p, "kick"):
 			picked[who] = true
 			Sfx.play("menu_ok", -2.0)
@@ -179,12 +190,12 @@ func _draw() -> void:
 		if Game.mode == "training" and p == 1:
 			tag = "DUMMY"
 		var col := Color(1, 0.3, 0.25) if p == 0 else Color(0.35, 0.6, 1)
-		draw_colored_polygon(PackedVector2Array([Vector2(x - 170, 455), Vector2(x + 170, 455), Vector2(x + 150, 505), Vector2(x - 190, 505)]), Color(0, 0, 0, 0.55))
-		_text(disp, Vector2(x - 170, 495), cd.display_name, 44, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, 340.0)
-		_text(body, Vector2(x - 170, 530), cd.epithet, 22, cd.accent.lightened(0.4), HORIZONTAL_ALIGNMENT_CENTER, 340.0)
-		_text(disp, Vector2(x - 170, 580), tag, 34, col, HORIZONTAL_ALIGNMENT_CENTER, 340.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(x - 150, 455), Vector2(x + 150, 455), Vector2(x + 130, 505), Vector2(x - 170, 505)]), Color(0, 0, 0, 0.55))
+		_text(disp, Vector2(x - 150, 495), cd.display_name, 44, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, 300.0)
+		_text(body, Vector2(x - 150, 530), cd.epithet, 22, cd.accent.lightened(0.4), HORIZONTAL_ALIGNMENT_CENTER, 300.0)
+		_text(disp, Vector2(x - 150, 580), tag, 34, col, HORIZONTAL_ALIGNMENT_CENTER, 300.0)
 		if picked[p]:
-			_text(disp, Vector2(x - 170, 620), "READY!", 30, Color(1, 0.9, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 340.0)
+			_text(disp, Vector2(x - 150, 620), "READY!", 30, Color(1, 0.9, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 300.0)
 	if phase == "chars":
 		for i in cards.size():
 			var c: Control = cards[i].clip
@@ -197,8 +208,8 @@ func _draw() -> void:
 					var col := Color(1, 0.3, 0.25) if p == 0 else Color(0.35, 0.6, 1)
 					var g := 6.0 + 2.0 * sin(t * 8.0) + p * 6.0
 					draw_rect(r.grow(g), col, false, 4.0)
-			_text(disp, Vector2(r.position.x, r.end.y + 30), cards[i].rig.cd.display_name, 24, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		var hint := "← → choose   ·   Light to confirm   ·   Esc back"
+			_text(disp, Vector2(r.position.x - 10, r.end.y + 28), cards[i].rig.cd.display_name, 22, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20)
+		var hint := "Arrows choose   ·   Light to confirm   ·   Esc back"
 		if not _two_humans():
 			hint = ("Pick your fighter" if not picked[0] else "Pick your opponent") + "   ·   " + hint
 		_text(body, Vector2(0, 700), hint, 20, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_CENTER, 1280.0)
