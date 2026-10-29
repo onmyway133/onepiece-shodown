@@ -115,11 +115,12 @@ func _base_moves() -> void:
 
 
 func pose(spec) -> Dictionary:
-	if spec is String:
-		if _resolved.has(spec):
-			return _resolved[spec]
-		var r := pose(poses.get(spec, {}))
-		_resolved[spec] = r
+	if spec is String or spec is StringName:
+		var key := String(spec)
+		if _resolved.has(key):
+			return _resolved[key]
+		var r := pose(poses.get(key, {}))
+		_resolved[key] = r
 		return r
 	var d: Dictionary = spec
 	var out: Dictionary
@@ -707,7 +708,7 @@ func draw_torso(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) ->
 	if style.top in ["shirt", "suit"]:
 		base = col.top
 	shape(cv, pts, base, st, true, 2.6)
-	if style.top == "none" or style.top == "vest":
+	if style.top in ["none", "vest", "coat"]:
 		draw_anatomy(cv, L, ch, st)
 	elif style.top == "shirt":
 		var fold := shadow_of(fc(base, st)).darkened(0.1)
@@ -729,28 +730,42 @@ func draw_torso(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) ->
 func draw_anatomy(cv: CanvasItem, L: float, ch: float, st: Dictionary) -> void:
 	var skin := fc(col.skin, st)
 	var sh := shadow_of(skin)
-	var line := sh.darkened(0.2)
+	var line := sh.darkened(0.24)
 	# shadow under the pecs
 	var pec := PackedVector2Array()
 	for i in 9:
 		var u := float(i) / 8.0
-		pec.append(Vector2(lerpf(3.0, 19.5, u) * ch, -L * (0.6 - 0.07 * sin(u * PI)) - L * 0.04 * u))
+		pec.append(Vector2(lerpf(2.5, 19.5, u) * ch, -L * (0.6 - 0.075 * sin(u * PI)) - L * 0.04 * u))
 	var under := pec.duplicate()
 	for i in range(8, -1, -1):
-		under.append(pec[i] + Vector2(0, 5.0 + 2.0 * sin(float(i) / 8.0 * PI)))
+		under.append(pec[i] + Vector2(0, 5.5 + 2.5 * sin(float(i) / 8.0 * PI)))
 	if not Geometry2D.triangulate_polygon(under).is_empty():
-		cv.draw_colored_polygon(under, Color(sh, 0.75))
-	cv.draw_polyline(pec, line, 1.7, true)
-	cv.draw_line(Vector2(3.5 * ch, -L * 0.9), Vector2(3.5 * ch, -L * 0.62), Color(line, 0.7), 1.4, true)
+		cv.draw_colored_polygon(under, Color(sh, 0.82))
+	# upper pec highlight
+	var pec_hi := PackedVector2Array([
+		Vector2(5.0 * ch, -L * 0.82), Vector2(15.5 * ch, -L * 0.8),
+		Vector2(16.5 * ch, -L * 0.67), Vector2(5.5 * ch, -L * 0.66),
+	])
+	cv.draw_colored_polygon(pec_hi, Color(skin.lightened(0.14), 0.55))
+	cv.draw_polyline(pec, line, 1.85, true)
+	# sternum cleavage
+	cv.draw_line(Vector2(3.5 * ch, -L * 0.9), Vector2(3.5 * ch, -L * 0.58), Color(line, 0.8), 1.6, true)
 	# collarbone
-	cv.draw_polyline(PackedVector2Array([Vector2(5 * ch, -L * 0.93), Vector2(11 * ch, -L * 0.9), Vector2(17 * ch, -L * 0.92)]), Color(line, 0.8), 1.4, true)
-	# abs
-	cv.draw_line(Vector2(7 * ch, -L * 0.5), Vector2(8 * ch, -L * 0.14), Color(line, 0.8), 1.4, true)
+	cv.draw_polyline(PackedVector2Array([Vector2(4.5 * ch, -L * 0.93), Vector2(11 * ch, -L * 0.9), Vector2(17.5 * ch, -L * 0.92)]), Color(line, 0.85), 1.5, true)
+	# abs shading & lines
+	cv.draw_line(Vector2(7 * ch, -L * 0.54), Vector2(8 * ch, -L * 0.14), Color(line, 0.85), 1.6, true)
+	for i in 3:
+		var y := -L * (0.46 - i * 0.11)
+		cv.draw_colored_polygon(PackedVector2Array([
+			Vector2(3.2 * ch, y), Vector2(13.2 * ch, y + 1.0),
+			Vector2(12.8 * ch, y + 4.0), Vector2(3.5 * ch, y + 3.0),
+		]), Color(sh, 0.48))
+		cv.draw_polyline(PackedVector2Array([Vector2(3 * ch, y + 1.0), Vector2(7.5 * ch, y), Vector2(13 * ch, y + 1.5)]), Color(line, 0.78), 1.4, true)
+	# obliques & serratus ribs
+	cv.draw_line(Vector2(14 * ch, -L * 0.38), Vector2(11 * ch, -L * 0.06), Color(line, 0.75), 1.5, true)
 	for i in 2:
-		var y := -L * (0.43 - i * 0.13)
-		cv.draw_polyline(PackedVector2Array([Vector2(3 * ch, y + 1.0), Vector2(7.5 * ch, y), Vector2(13 * ch, y + 1.5)]), Color(line, 0.7), 1.3, true)
-	# obliques
-	cv.draw_line(Vector2(14 * ch, -L * 0.36), Vector2(11 * ch, -L * 0.06), Color(line, 0.7), 1.4, true)
+		var ry := -L * (0.5 - i * 0.07)
+		cv.draw_line(Vector2(14.5 * ch, ry), Vector2(17.5 * ch, ry + 3.0), Color(line, 0.65), 1.2, true)
 
 
 func draw_head_all(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
@@ -772,11 +787,12 @@ func draw_head_all(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary)
 
 func head_pts(R: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for i in 32:
-		var a := TAU * float(i) / 32.0
-		var chin := pow(maxf(0.0, cos(a - deg_to_rad(68.0))), 8.0)
-		var jaw := pow(maxf(0.0, cos(a - deg_to_rad(90.0))), 4.0)
-		var r := R * (1.0 + 0.34 * chin + 0.08 * jaw)
+	for i in 36:
+		var a := TAU * float(i) / 36.0
+		var chin := pow(maxf(0.0, cos(a - deg_to_rad(66.0))), 8.5)
+		var jaw := pow(maxf(0.0, cos(a - deg_to_rad(92.0))), 3.8)
+		var cheek := pow(maxf(0.0, cos(a - deg_to_rad(28.0))), 6.0)
+		var r := R * (1.0 + 0.36 * chin + 0.09 * jaw + 0.04 * cheek)
 		pts.append(Vector2(cos(a) * r * 0.95, sin(a) * r * 1.02))
 	return pts
 
@@ -795,8 +811,14 @@ func draw_face(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	# ear
 	shape(cv, ellipse(Vector2(-R * 0.48, R * 0.12), R * 0.19, R * 0.27, 12), col.skin, st, false)
 	var head := head_pts(R)
-	shape(cv, head, col.skin, st, true, 2.6, 0.4)
-	cv.draw_arc(Vector2(-R * 0.48, R * 0.12), R * 0.1, -1.0, 2.0, 6, shadow_of(skin).darkened(0.25), 1.6, true)
+	shape(cv, head, col.skin, st, true, 2.7, 0.42)
+	# anime inner ear fold
+	cv.draw_arc(Vector2(-R * 0.48, R * 0.12), R * 0.1, -1.0, 2.0, 6, shadow_of(skin).darkened(0.28), 1.6, true)
+	cv.draw_line(Vector2(-R * 0.52, R * 0.12), Vector2(-R * 0.43, R * 0.18), shadow_of(skin).darkened(0.25), 1.3, true)
+	# cheekbone / jaw rim highlight
+	cv.draw_polyline(PackedVector2Array([
+		Vector2(R * 0.68, R * 0.18), Vector2(R * 0.72, R * 0.42), Vector2(R * 0.48, R * 0.88)
+	]), Color(skin.lightened(0.18), 0.65), 1.6, true)
 	var ink := OUTLINE
 	for far in [true, false]:
 		_squash = 0.62 if far else 1.0
@@ -814,10 +836,10 @@ func draw_face(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 			_:
 				draw_eye(cv, eye, R, face, st)
 	_squash = 1.0
-	# nose: a small shadow wedge with an ink tip
-	var nz := Vector2(R * 0.5, R * 0.22)
-	cv.draw_colored_polygon(PackedVector2Array([nz, nz + Vector2(R * 0.1, R * 0.2), nz + Vector2(-R * 0.04, R * 0.22)]), shadow_of(skin))
-	cv.draw_line(nz + Vector2(R * 0.04, R * 0.08), nz + Vector2(R * 0.1, R * 0.2), shadow_of(skin).darkened(0.35), 1.7, true)
+	# nose: crisp anime wedge with shadow plane and bridge line
+	var nz := Vector2(R * 0.5, R * 0.2)
+	cv.draw_colored_polygon(PackedVector2Array([nz, nz + Vector2(R * 0.12, R * 0.22), nz + Vector2(-R * 0.05, R * 0.24)]), shadow_of(skin).darkened(0.06))
+	cv.draw_polyline(PackedVector2Array([nz + Vector2(R * 0.02, R * 0.02), nz + Vector2(R * 0.12, R * 0.22), nz + Vector2(R * 0.02, R * 0.24)]), shadow_of(skin).darkened(0.42), 1.8, true)
 	draw_mouth(cv, R, face, st)
 	draw_face_extra(cv, R, p, st)
 
