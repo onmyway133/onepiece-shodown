@@ -21,10 +21,10 @@ func setup() -> void:
 	col.top = Color("c9282d")
 	col.sleeve = Color("c9282d")
 	col.pants = Color("2f62ad")
-	col.cuff_c = Color("5e8fd6")
+	col.cuff_c = Color("e8e2d5")
 	col.shoes = Color("7a4a24")
 	col.sash = Color("f0c330")
-	style = {"top": "vest", "sleeves": "short", "pants": "short", "feet": "sandal", "cuff": true}
+	style = {"top": "vest", "sleeves": "short", "pants": "short", "feet": "sandal", "cuff": true, "sash_tail": true}
 	walk_speed = 4.6
 	back_speed = 3.6
 	jump_vy = -20.0
@@ -150,26 +150,40 @@ static func _m(a: Dictionary, b: Dictionary) -> Dictionary:
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	# X scar on the chest
-	var sc := fc(col.skin, st).darkened(0.4)
-	var c := Vector2(9 * ch, -L * 0.6)
-	cv.draw_line(c + Vector2(-5, -5), c + Vector2(5, 5), sc, 2.0, true)
-	cv.draw_line(c + Vector2(-5, 5), c + Vector2(5, -5), sc, 2.0, true)
-	# open red cardigan: back panel and front lapel
-	var back := PackedVector2Array([Vector2(-16 * ch, -L * 0.16), Vector2(1, -L * 0.18), Vector2(4, -L * 0.92), Vector2(-1, -L - 2), Vector2(-16 * ch, -L + 1), Vector2(-20 * ch, -L * 0.6)])
+	# post-timeskip cross-shaped Akainu scar on chest
+	var sc_fill := fc(col.skin, st).darkened(0.28).lerp(Color("b84a48"), 0.35)
+	var sc_line := fc(col.skin, st).darkened(0.45)
+	var c := Vector2(8.5 * ch, -L * 0.62)
+	var scar_pts := PackedVector2Array([
+		c + Vector2(-7, -7), c + Vector2(-2, -3), c + Vector2(3, -7), c + Vector2(6, -5),
+		c + Vector2(2, 0), c + Vector2(7, 6), c + Vector2(4, 8), c + Vector2(-1, 3),
+		c + Vector2(-6, 7), c + Vector2(-8, 4), c + Vector2(-3, -1), c + Vector2(-8, -5),
+	])
+	if not Geometry2D.triangulate_polygon(scar_pts).is_empty():
+		cv.draw_colored_polygon(scar_pts, sc_fill)
+	outline(cv, scar_pts, 1.3, sc_line)
+	# open red cardigan: back panel, front lapel, and gold buttons
+	var back := PackedVector2Array([Vector2(-16.5 * ch, -L * 0.14), Vector2(1, -L * 0.16), Vector2(4, -L * 0.92), Vector2(-1, -L - 2), Vector2(-16.5 * ch, -L + 1), Vector2(-20.5 * ch, -L * 0.6)])
 	shape(cv, back, col.top, st)
-	var lap := PackedVector2Array([Vector2(13 * ch, -L * 0.2), Vector2(17 * ch, -L * 0.24), Vector2(20 * ch, -L * 0.68), Vector2(15 * ch, -L - 3), Vector2(9 * ch, -L * 0.95), Vector2(15 * ch, -L * 0.64)])
+	var lap := PackedVector2Array([Vector2(12.5 * ch, -L * 0.16), Vector2(17.5 * ch, -L * 0.22), Vector2(20.5 * ch, -L * 0.68), Vector2(15.5 * ch, -L - 3), Vector2(9 * ch, -L * 0.95), Vector2(14.5 * ch, -L * 0.62)])
 	shape(cv, lap, col.top, st)
+	for i in 3:
+		cv.draw_circle(Vector2(14.5 * ch, -L * (0.32 + i * 0.22)), 1.9, fc(Color("f2cf5b"), st))
+	# pleated yellow waist sash over the shorts
+	var sash_pts := PackedVector2Array([Vector2(-17.5 * ch, 9.0), Vector2(18.0 * ch, 9.0), Vector2(16.8 * ch, -3.5), Vector2(-16.8 * ch, -2.5)])
+	shape(cv, sash_pts, col.sash, st, true, 1.8)
+	var s_line := shadow_of(fc(col.sash, st)).darkened(0.15)
+	cv.draw_line(Vector2(-15 * ch, 3.0), Vector2(16 * ch, 2.5), s_line, 1.4, true)
 
 
 func draw_hair_back(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R, 100.0, 250.0, 6, R * 0.45, col.hair, st, 0.4, Vector2(-R * 0.1, -R * 0.05), 3, -16.0)
+	spikes(cv, R, 95.0, 255.0, 7, R * 0.48, col.hair, st, 0.4, Vector2(-R * 0.1, -R * 0.05), 3, -16.0)
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R * 0.98, 195.0, 335.0, 6, R * 0.32, col.hair, st, 0.35, Vector2(-R * 0.05, -R * 0.12), 7, -18.0)
+	spikes(cv, R * 0.98, 190.0, 340.0, 7, R * 0.34, col.hair, st, 0.35, Vector2(-R * 0.05, -R * 0.12), 7, -18.0)
 	# messy fringe over the forehead, short enough to show the eyes
-	var b := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.3, -0.98], [0.4, -1.02], [0.92, -0.7], [1.04, -0.36], [0.84, -0.5], [0.72, -0.3], [0.58, -0.52], [0.44, -0.34], [0.3, -0.56], [0.12, -0.36], [0.02, -0.58], [-0.22, -0.5]])
+	var b := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.32, -0.98], [0.42, -1.02], [0.94, -0.7], [1.06, -0.34], [0.84, -0.5], [0.72, -0.28], [0.58, -0.52], [0.44, -0.32], [0.3, -0.56], [0.12, -0.34], [0.02, -0.58], [-0.24, -0.5]])
 	shape(cv, b, col.hair, st, true, 2.2)
 
 
@@ -180,17 +194,21 @@ func draw_hat(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	var crown := PackedVector2Array()
 	for i in 13:
 		var a := PI + PI * float(i) / 12.0
-		crown.append(Vector2(-R * 0.05 + cos(a) * R * 0.92, -R * 0.62 + sin(a) * R * 0.78))
-	shape(cv, ellipse(Vector2(0, -R * 0.62), R * 1.75, R * 0.3, 22, -0.06), straw, st)
+		crown.append(Vector2(-R * 0.05 + cos(a) * R * 0.94, -R * 0.62 + sin(a) * R * 0.8))
+	shape(cv, ellipse(Vector2(0, -R * 0.62), R * 1.82, R * 0.32, 24, -0.06), straw, st)
 	shape(cv, crown, straw, st)
-	var band := PackedVector2Array([Vector2(-R * 0.97, -R * 0.66), Vector2(R * 0.87, -R * 0.66), Vector2(R * 0.84, -R * 0.9), Vector2(-R * 0.93, -R * 0.9)])
-	shape(cv, band, Color("c0262d"), st, false, 2.0)
-	var line := fc(straw, st).darkened(0.3)
+	var band := PackedVector2Array([Vector2(-R * 0.98, -R * 0.66), Vector2(R * 0.88, -R * 0.66), Vector2(R * 0.85, -R * 0.92), Vector2(-R * 0.94, -R * 0.92)])
+	shape(cv, band, Color("c4242b"), st, true, 2.0)
+	var line := fc(straw, st).darkened(0.28)
 	var ring := PackedVector2Array()
 	for i in 9:
 		var a := 0.15 + (PI - 0.3) * float(i) / 8.0
-		ring.append(Vector2(cos(a) * R * 1.4, -R * 0.62 + sin(a) * R * 0.17).rotated(-0.06))
+		ring.append(Vector2(cos(a) * R * 1.45, -R * 0.62 + sin(a) * R * 0.18).rotated(-0.06))
 	cv.draw_polyline(ring, line, 1.3, true)
+	# straw weave texture lines on crown
+	for k in 3:
+		var x := (-0.45 + k * 0.42) * R
+		cv.draw_line(Vector2(x, -R * 0.92), Vector2(x * 0.85, -R * 1.32), Color(line, 0.55), 1.2, true)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:

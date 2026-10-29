@@ -206,21 +206,27 @@ func draw_sword(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Di
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	# Heart Pirates jolly roger on the shirt
+	# Heart Pirates jolly roger on the shirt + high fuzzy collar
 	var c := Vector2(9 * ch, -L * 0.6)
 	var ink := fc(Color("16161b"), st)
-	cv.draw_circle(c, 7.0, ink)
-	cv.draw_arc(c, 11.0, 0.0, TAU, 16, ink, 2.0, true)
-	cv.draw_circle(c + Vector2(-2.5, -1.5), 1.6, fc(col.top, st))
-	cv.draw_circle(c + Vector2(2.5, -1.5), 1.6, fc(col.top, st))
+	cv.draw_circle(c, 7.5, ink)
+	cv.draw_arc(c, 11.5, 0.0, TAU, 16, ink, 2.2, true)
+	for a_deg in [45.0, 135.0, 225.0, 315.0]:
+		var a := deg_to_rad(a_deg)
+		cv.draw_line(c + Vector2(cos(a) * 8.0, sin(a) * 8.0), c + Vector2(cos(a) * 14.0, sin(a) * 14.0), ink, 2.2, true)
+	cv.draw_circle(c + Vector2(-2.5, -1.5), 1.7, fc(col.top, st))
+	cv.draw_circle(c + Vector2(2.5, -1.5), 1.7, fc(col.top, st))
 	coat_torso(cv, st, L, ch, col.sleeve, Color("e8c14a"))
+	# yellow coat emblem on back panel + fuzzy white collar around neck
+	var col_pts := PackedVector2Array([Vector2(-15 * ch, -L + 4), Vector2(-19 * ch, -L - 10), Vector2(-6 * ch, -L - 12), Vector2(4 * ch, -L - 8), Vector2(2 * ch, -L + 2)])
+	shape(cv, col_pts, Color("f1eee6"), st, true, 1.8)
 
 
 func draw_back_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
 	if p.get("fx", "") == "gamma":
 		var tt: float = st.get("time", 0.0)
 		cv.draw_circle(J.neck + Vector2(0, 30), 120.0 + 10.0 * sin(tt * 10.0), Color(0.4, 0.8, 1.0, 0.15))
-	coat_tail(cv, J, st, col.sleeve, false, 104.0, 18.0)
+	coat_tail(cv, J, st, col.sleeve, false, 106.0, 19.0)
 
 
 func draw_leg_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
@@ -228,19 +234,21 @@ func draw_leg_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st
 	var hip: Vector2 = J.hip
 	var kn: Vector2 = J["knee_" + s]
 	var ft: Vector2 = J["foot_" + s]
-	var spot := fc(Color("1d2a44"), st)
-	for u in [0.3, 0.7]:
-		cv.draw_circle(hip.lerp(kn, u) + Vector2(3, 0), 3.2, spot)
-	cv.draw_circle(kn.lerp(ft, 0.45) + Vector2(-2, 0), 3.0, spot)
+	var spot := fc(Color("162038"), st)
+	for u: float in [0.25, 0.52, 0.76]:
+		cv.draw_circle(hip.lerp(kn, u) + Vector2(3.0 if u < 0.5 else -2.0, 0), 3.4, spot)
+	for u2: float in [0.32, 0.65]:
+		cv.draw_circle(kn.lerp(ft, u2) + Vector2(-2.0 if u2 < 0.5 else 2.5, 0), 3.1, spot)
 	if s == "f":
-		coat_tail(cv, J, st, col.sleeve, true, 96.0, 16.0)
+		coat_tail(cv, J, st, col.sleeve, true, 98.0, 17.0)
 
 
 func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
-	# fuzzy white coat cuff
+	# fuzzy white coat cuff + DEATH finger tattoos hint on back of hand
 	var el: Vector2 = J["elbow_" + s]
 	var ha: Vector2 = J["hand_" + s]
-	shape(cv, ellipse(el.lerp(ha, 0.82), 11.0, 9.0, 10, (ha - el).angle()), Color("f2efe6"), st, false, 1.6)
+	shape(cv, ellipse(el.lerp(ha, 0.82), 11.5, 9.2, 12, (ha - el).angle()), Color("f2efe6"), st, true, 1.6)
+	cv.draw_circle(ha, 3.2, fc(Color("16161b"), st))
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
@@ -251,34 +259,38 @@ func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	var ink := fc(col.hair, st)
-	# tired eye bags, goatee, sideburns and gold earrings
+	# tired eye bags, sculpted goatee, sideburns and gold earrings
 	for e in [EYE_NEAR, EYE_FAR]:
 		var c: Vector2 = e * R + Vector2(0, R * 0.36)
-		cv.draw_arc(c, R * 0.14, 0.4, PI - 0.4, 6, shadow_of(fc(col.skin, st)).darkened(0.2), 1.4, true)
-	cv.draw_line(Vector2(R * 0.4, R * 1.02), Vector2(R * 0.44, R * 1.24), ink, 3.6, true)
-	cv.draw_line(Vector2(-R * 0.24, R * 0.2), Vector2(-R * 0.18, R * 0.62), ink, 3.0, true)
+		cv.draw_arc(c, R * 0.14, 0.4, PI - 0.4, 6, shadow_of(fc(col.skin, st)).darkened(0.24), 1.5, true)
+	var gt := PackedVector2Array([Vector2(R * 0.34, R * 0.96), Vector2(R * 0.48, R * 0.94), Vector2(R * 0.46, R * 1.24), Vector2(R * 0.38, R * 1.24)])
+	cv.draw_colored_polygon(gt, ink)
+	var sb := PackedVector2Array([Vector2(-R * 0.28, R * 0.12), Vector2(-R * 0.16, R * 0.14), Vector2(-R * 0.14, R * 0.65), Vector2(-R * 0.24, R * 0.62)])
+	cv.draw_colored_polygon(sb, ink)
 	for i in 2:
-		cv.draw_arc(Vector2(-R * 0.5, R * 0.38 + i * R * 0.12), R * 0.07, 0.0, TAU, 8, fc(Color("e8c040"), st), 1.8, true)
+		cv.draw_arc(Vector2(-R * 0.5, R * 0.38 + i * R * 0.12), R * 0.075, 0.0, TAU, 8, fc(Color("e8c040"), st), 1.9, true)
 
 
 func draw_hat(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	# white fuzzy hat with brown spots
-	var hat := Color("f1eee6")
+	# white fuzzy Northern-style hat with dark leopard spots and fluffy brim
+	var hat := Color("f4f1e8")
 	var crown := PackedVector2Array()
 	for i in 15:
 		var a := PI + PI * float(i) / 14.0
-		crown.append(Vector2(-R * 0.05 + cos(a) * R * 1.02, -R * 0.45 + sin(a) * R * 0.95))
+		crown.append(Vector2(-R * 0.05 + cos(a) * R * 1.04, -R * 0.46 + sin(a) * R * 0.96))
 	shape(cv, crown, hat, st)
-	var spot := fc(Color("7a5230"), st)
-	for q in [Vector2(-0.4, -0.9), Vector2(0.2, -1.15), Vector2(0.55, -0.75), Vector2(-0.1, -0.6), Vector2(-0.7, -0.55)]:
-		cv.draw_circle(q * R, R * 0.1, spot)
-	# fuzzy brim
+	var spot := fc(Color("3b291e"), st)
+	for q in [Vector2(-0.42, -0.92), Vector2(0.18, -1.16), Vector2(0.56, -0.76), Vector2(-0.08, -0.64), Vector2(-0.72, -0.58), Vector2(0.32, -0.62)]:
+		cv.draw_circle(q * R, R * 0.105, spot)
+	# fuzzy brim with dark spots
 	var brim := PackedVector2Array()
 	for i in 24:
 		var a := TAU * float(i) / 24.0
 		var r := 1.0 + (0.12 if i % 2 == 0 else 0.0)
-		brim.append(Vector2(-R * 0.05 + cos(a) * R * 1.15 * r, -R * 0.45 + sin(a) * R * 0.22 * r))
+		brim.append(Vector2(-R * 0.05 + cos(a) * R * 1.16 * r, -R * 0.45 + sin(a) * R * 0.23 * r))
 	shape(cv, brim, hat, st, true, 2.0)
+	for q2 in [Vector2(-0.55, -0.44), Vector2(0.05, -0.42), Vector2(0.58, -0.45)]:
+		cv.draw_circle(q2 * R, R * 0.075, spot)
 
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:

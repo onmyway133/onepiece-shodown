@@ -19,13 +19,13 @@ func setup() -> void:
 	dims.chest = 1.6
 	dims.limb = 1.35
 	dims.foot = 26.0
-	col.skin = Color("6f9fc8")
-	col.hair = Color("1c1f2a")
-	col.top = Color("33507e")
-	col.sleeve = Color("33507e")
-	col.pants = Color("2a4268")
+	col.skin = Color("6a9ec8")
+	col.hair = Color("181a24")
+	col.top = Color("d88824")
+	col.sleeve = Color("a82428")
+	col.pants = Color("2a3a58")
 	col.shoes = Color("6a4a2c")
-	col.sash = Color("e2a23a")
+	col.sash = Color("4a2e68")
 	col.eye = Color("3a2a1a")
 	style = {"top": "shirt", "sleeves": "short", "pants": "knee", "feet": "sandal", "cuff": false, "sash_tail": true}
 	walk_speed = 3.6
@@ -197,63 +197,87 @@ static func _m(base, extra: Dictionary) -> Dictionary:
 # ---------------------------------------------------------------- drawing
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	# kimono: a deep V showing the chest, a light trim and a wave crest on the chest
-	var v := PackedVector2Array([Vector2(-4 * ch, -L - 2), Vector2(14 * ch, -L - 2.5), Vector2(6 * ch, -L * 0.42)])
+	# kimono: deep V showing blue fish-man chest with red Sun Pirates tattoo + haori coat lapels
+	var v := PackedVector2Array([Vector2(-4 * ch, -L - 2), Vector2(15 * ch, -L - 2.5), Vector2(7 * ch, -L * 0.38)])
 	shape(cv, v, col.skin, st, true, 1.8)
-	var trim := fc(Color("c9d7ea"), st)
-	cv.draw_line(Vector2(-4 * ch, -L - 2), Vector2(6 * ch, -L * 0.42), trim, 3.0, true)
-	cv.draw_line(Vector2(14 * ch, -L - 2.5), Vector2(6 * ch, -L * 0.42), trim, 3.0, true)
-	var line := shadow_of(fc(col.top, st)).darkened(0.15)
-	for k in 3:
-		var x := (-12.0 + k * 9.0) * ch
-		cv.draw_line(Vector2(x, -L * 0.3), Vector2(x + 2.0 * ch, -L * 0.7), Color(line, 0.6), 1.4, true)
-	var c := Vector2(-9 * ch, -L * 0.62)
-	cv.draw_arc(c, 7.0, PI * 0.9, PI * 2.2, 10, trim, 2.0, true)
-	cv.draw_arc(c + Vector2(4, 2), 3.5, PI, PI * 2.2, 8, trim, 1.6, true)
+	# Sun Pirates red sun mark on center chest
+	var sun_c := Vector2(6.5 * ch, -L * 0.72)
+	var sun_col := fc(Color("c82228"), st)
+	cv.draw_circle(sun_c, 4.8, sun_col)
+	for r_i in 8:
+		var ra := TAU * float(r_i) / 8.0
+		cv.draw_line(sun_c + Vector2(cos(ra) * 5.2, sin(ra) * 5.2), sun_c + Vector2(cos(ra) * 8.2, sin(ra) * 8.2), sun_col, 1.5, true)
+	# geometric diamond patterns on the ochre kimono
+	var d_col := fc(Color("221814"), st)
+	for dy: float in [-0.28, -0.52]:
+		for dx: float in [-8.0, 12.0]:
+			var dc := Vector2(dx * ch, L * dy)
+			var d_pts := PackedVector2Array([dc + Vector2(0, -4.5), dc + Vector2(4.5 * ch, 0), dc + Vector2(0, 4.5), dc + Vector2(-4.5 * ch, 0)])
+			cv.draw_colored_polygon(d_pts, d_col)
+			cv.draw_circle(dc, 1.6, fc(col.top, st))
+	# crimson haori coat shoulders/sides + dark collar trim
+	var haori_b := PackedVector2Array([Vector2(-17 * ch, -L * 0.08), Vector2(-7 * ch, -L * 0.12), Vector2(-6 * ch, -L + 1), Vector2(-16 * ch, -L), Vector2(-20 * ch, -L * 0.52)])
+	shape(cv, haori_b, col.sleeve, st, true, 1.8)
+	var trim := fc(Color("f0dca8"), st)
+	cv.draw_line(Vector2(-4 * ch, -L - 2), Vector2(7 * ch, -L * 0.38), trim, 3.0, true)
+	cv.draw_line(Vector2(15 * ch, -L - 2.5), Vector2(7 * ch, -L * 0.38), trim, 3.0, true)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
 	var face: String = p.get("face", "normal")
 	var skin := fc(col.skin, st)
 	var ink := shadow_of(skin).darkened(0.35)
-	# gill slits on the cheek, thick lips and two lower fangs
+	# lightning scar over the left eye
+	var sc0 := EYE_FAR * R + Vector2(0, -R * 0.52)
+	var sc1 := EYE_FAR * R + Vector2(R * 0.08, -R * 0.1)
+	var sc2 := EYE_FAR * R + Vector2(-R * 0.04, R * 0.32)
+	cv.draw_polyline(PackedVector2Array([sc0, sc1, sc2]), Color(ink, 0.8), 1.8, true)
+	# gill slits on the cheek, thick lips, two lower fangs, and scrolled chin beard
 	for k in 3:
 		var a := Vector2(-R * 0.18 + k * R * 0.07, R * 0.42)
 		cv.draw_line(a, a + Vector2(R * 0.04, R * 0.2), ink, 1.6, true)
 	var m := MOUTH * R
 	if face in ["normal", "angry", "closed", "grin"]:
 		cv.draw_line(m + Vector2(-R * 0.22, R * 0.07), m + Vector2(R * 0.18, R * 0.05), Color(ink, 0.7), 2.4, true)
-	for x in [-0.14, 0.1]:
+	for x: float in [-0.15, 0.11]:
 		var b := m + Vector2(R * x, R * 0.04)
-		cv.draw_colored_polygon(PackedVector2Array([b, b + Vector2(R * 0.08, 0), b + Vector2(R * 0.03, -R * 0.14)]), Color.WHITE)
+		var fang := PackedVector2Array([b, b + Vector2(R * 0.09, 0), b + Vector2(R * 0.035, -R * 0.17)])
+		cv.draw_colored_polygon(fang, Color.WHITE)
+		outline(cv, fang, 1.2)
+	# signature雙-scroll chin beard + sideburns
+	var b_col := fc(col.hair, st)
+	for sx: float in [0.16, 0.52]:
+		cv.draw_arc(Vector2(R * sx, R * 1.06), R * 0.11, 0.2, TAU - 0.3, 8, b_col, 2.2, true)
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	# slicked back hair with a samurai topknot
+	# slicked back hair with wavy side locks and samurai topknot
 	var cap := PackedVector2Array()
 	for i in 13:
 		var a := deg_to_rad(lerpf(140.0, 320.0, float(i) / 12.0))
-		cap.append(Vector2(cos(a), sin(a)) * R * 1.06)
-	cap.append_array(local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[0.7, -0.66], [0.3, -0.58], [-0.1, -0.5], [-0.4, -0.2], [-0.5, 0.3], [-0.9, 0.3]]))
+		cap.append(Vector2(cos(a), sin(a)) * R * 1.08)
+	cap.append_array(local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[0.7, -0.66], [0.3, -0.58], [-0.1, -0.5], [-0.4, -0.2], [-0.5, 0.35], [-0.95, 0.35]]))
 	shape(cv, cap, col.hair, st, true, 2.2)
 	var sheen := fc(col.hair, st).lightened(0.3)
 	for k in 3:
 		cv.draw_arc(Vector2(-R * 0.1, -R * 0.1), R * (0.8 + k * 0.08), PI + 0.4 + k * 0.1, PI + 1.3 + k * 0.1, 6, sheen, 1.4, true)
-	var knot := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.6, -0.9], [-0.2, -1.05], [0.1, -1.3], [0.24, -1.2], [0.0, -1.0], [-0.5, -0.78]])
+	var knot := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.6, -0.9], [-0.2, -1.05], [0.12, -1.32], [0.26, -1.2], [0.0, -1.0], [-0.5, -0.78]])
 	shape(cv, knot, col.hair, st, true, 2.0)
-	cv.draw_line(Vector2(-R * 0.2, -R * 1.1), Vector2(-R * 0.06, -R * 0.92), fc(Color("e2a23a"), st), 3.0, true)
+	cv.draw_line(Vector2(-R * 0.2, -R * 1.1), Vector2(-R * 0.06, -R * 0.92), fc(Color("e2a23a"), st), 3.2, true)
 
 
 func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictionary) -> void:
-	# heavy, stern brows
+	# heavy, curly golden-yellow eyebrows
 	var k := _squash
 	var inner := eye + Vector2(R * 0.26 * k, -R * 0.36 + tilt)
-	var outer := eye + Vector2(-R * 0.26 * k, -R * 0.44 - tilt * 0.3)
+	var outer := eye + Vector2(-R * 0.28 * k, -R * 0.46 - tilt * 0.3)
 	var d := (inner - outer).normalized()
 	var n := Vector2(-d.y, d.x)
-	var pts := PackedVector2Array([outer + n * 2.0, outer.lerp(inner, 0.5) - n * 4.4, inner - n * 3.6, inner + n * 2.4, outer.lerp(inner, 0.5) + n * 2.6])
+	var b_col := fc(Color("e6b83c"), st)
+	var pts := PackedVector2Array([outer + n * 2.2, outer.lerp(inner, 0.5) - n * 4.8, inner - n * 3.8, inner + n * 2.5, outer.lerp(inner, 0.5) + n * 2.8])
 	if not Geometry2D.triangulate_polygon(pts).is_empty():
-		cv.draw_colored_polygon(pts, fc(col.hair, st))
+		cv.draw_colored_polygon(pts, b_col)
+	outline(cv, pts, 1.3)
 
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:

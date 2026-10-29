@@ -209,21 +209,26 @@ func draw_anatomy(cv: CanvasItem, L: float, ch: float, st: Dictionary) -> void:
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	# low-rise jeans and a belt
+	# low-rise jeans and Berry-emblem belt
 	var jeans := PackedVector2Array([Vector2(-17.5 * ch, 9), Vector2(17.5 * ch, 9), Vector2(15 * ch, -L * 0.14), Vector2(-15.5 * ch, -L * 0.12)])
 	shape(cv, jeans, col.pants, st, true, 2.0)
-	cv.draw_line(Vector2(-15.5 * ch, -L * 0.1), Vector2(15 * ch, -L * 0.12), fc(Color("5a3a22"), st), 3.0, true)
-	cv.draw_rect(Rect2(Vector2(8 * ch, -L * 0.15), Vector2(5, 5)), fc(Color("e0c050"), st))
-	# bikini top: two cups with a light shine and strings
-	var bk := Color("5fb0e8")
+	var belt_pts := PackedVector2Array([Vector2(-16 * ch, -L * 0.08), Vector2(15.5 * ch, -L * 0.1), Vector2(15.2 * ch, -L * 0.16), Vector2(-15.8 * ch, -L * 0.14)])
+	shape(cv, belt_pts, Color("6e4424"), st, true, 1.5)
+	for i in 4:
+		var bx := lerpf(-11.0, 11.0, float(i) / 3.0) * ch
+		cv.draw_circle(Vector2(bx, -L * 0.12), 3.2, fc(Color("e8c448"), st))
+		cv.draw_arc(Vector2(bx, -L * 0.12), 3.2, 0, TAU, 8, OUTLINE, 1.0, true)
+	# green & white patterned bikini top: two cups with white trim, stripes, shine and strings
+	var bk := Color("2ca06a")
 	for c in [Vector2(12 * ch, -L * 0.7), Vector2(-3 * ch, -L * 0.7)]:
-		var cup := ellipse(c, 8.5 * ch, 7.0, 12)
+		var cup := ellipse(c, 8.8 * ch, 7.2, 12)
 		shape(cv, cup, bk, st, true, 1.8)
-		cv.draw_arc(c + Vector2(-1, -1), 4.0, PI + 0.4, TAU - 0.6, 6, Color(1, 1, 1, 0.5), 1.4, true)
-	var string := fc(Color("2f6fa8"), st)
-	cv.draw_line(Vector2(3.5 * ch, -L * 0.72), Vector2(5.5 * ch, -L * 0.72), string, 2.0, true)
-	cv.draw_line(Vector2(15 * ch, -L * 0.76), Vector2(13 * ch, -L * 0.98), string, 1.6, true)
-	cv.draw_line(Vector2(-8 * ch, -L * 0.72), Vector2(-15 * ch, -L * 0.7), string, 1.6, true)
+		cv.draw_line(c + Vector2(-5.5 * ch, 2.0), c + Vector2(5.5 * ch, -2.0), fc(Color("f4f8f6"), st), 2.2, true)
+		cv.draw_arc(c + Vector2(-1, -1), 4.0, PI + 0.4, TAU - 0.6, 6, Color(1, 1, 1, 0.55), 1.4, true)
+	var string := fc(Color("f4f8f6"), st)
+	cv.draw_line(Vector2(3.5 * ch, -L * 0.72), Vector2(5.5 * ch, -L * 0.72), string, 2.2, true)
+	cv.draw_line(Vector2(15 * ch, -L * 0.76), Vector2(13 * ch, -L * 0.98), string, 1.8, true)
+	cv.draw_line(Vector2(-8 * ch, -L * 0.72), Vector2(-15 * ch, -L * 0.7), string, 1.8, true)
 
 
 func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
@@ -233,17 +238,20 @@ func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st
 	var sh: Vector2 = J.shoulder
 	var el: Vector2 = J.elbow_f
 	var c := sh.lerp(el, 0.32)
-	var ink := fc(Color("2f6fa8"), st)
+	var ink := fc(Color("1f5a98"), st)
 	for k in 4:
 		var a := k * PI * 0.5 + 0.3
-		cv.draw_colored_polygon(PackedVector2Array([c, c + Vector2(cos(a), sin(a)) * 6.0, c + Vector2(cos(a + 0.9), sin(a + 0.9)) * 3.5]), ink)
-	cv.draw_circle(c + Vector2(4, 5), 2.4, fc(Color("f08a24"), st))
-	# gold bangle
+		cv.draw_colored_polygon(PackedVector2Array([c, c + Vector2(cos(a), sin(a)) * 6.5, c + Vector2(cos(a + 0.9), sin(a + 0.9)) * 3.8]), ink)
+	cv.draw_circle(c + Vector2(4, 5), 2.6, fc(Color("f08a24"), st))
+	# Log Pose + golden bangle on wrist
 	var ha: Vector2 = J.hand_f
-	var fa := el.lerp(ha, 0.78)
+	var fa := el.lerp(ha, 0.74)
 	var d := (ha - el).normalized()
 	var n := Vector2(-d.y, d.x) * 7.5
-	cv.draw_line(fa + n, fa - n, fc(Color("e8c040"), st), 3.4, true)
+	cv.draw_line(fa + n, fa - n, fc(Color("e8c040"), st), 3.6, true)
+	var lp := el.lerp(ha, 0.85)
+	cv.draw_circle(lp, 5.2, fc(Color("88d4f8"), st))
+	cv.draw_arc(lp, 5.2, 0, TAU, 8, OUTLINE, 1.3, true)
 
 
 func draw_foot(cv: CanvasItem, kn: Vector2, ft: Vector2, toe: Vector2, st: Dictionary) -> void:
@@ -268,25 +276,25 @@ func draw_foot(cv: CanvasItem, kn: Vector2, ft: Vector2, toe: Vector2, st: Dicti
 func draw_sword(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
 	if s != "f":
 		return
-	# Sorcery Clima-Tact: a blue segmented staff held near the middle
+	# Sorcery Clima-Tact: an orange-gold & cyan segmented staff held near the middle
 	var hand: Vector2 = J.hand_f
 	var tip: Vector2 = J.tip_f
 	var v := (tip - hand).normalized()
-	var butt := hand - v * 52.0
-	shape(cv, capsule(butt, tip, 4.2, 4.2, 4), Color("3d7fd0"), st, true, 1.8)
-	for k in [0.18, 0.5, 0.82]:
+	var butt := hand - v * 54.0
+	shape(cv, capsule(butt, tip, 4.4, 4.4, 4), Color("f08e28"), st, true, 1.8)
+	for k: float in [0.18, 0.5, 0.82]:
 		var c := butt.lerp(tip, k)
-		shape(cv, capsule(c - v * 3.0, c + v * 3.0, 5.6, 5.6, 3), Color("e8eef6"), st, false, 1.4)
+		shape(cv, capsule(c - v * 3.5, c + v * 3.5, 6.2, 6.2, 4), Color("58b8f0"), st, true, 1.5)
 	for e in [butt, tip]:
-		shape(cv, ellipse(e, 6.5, 6.5, 10), Color("1f4f9a"), st, true, 1.6)
+		shape(cv, ellipse(e, 7.0, 7.0, 10), Color("f6d458"), st, true, 1.6)
 
 
 func draw_back_fx(cv: CanvasItem, J: Dictionary, _p: Dictionary, st: Dictionary) -> void:
 	# long wavy orange hair hangs behind the body, so it is drawn first
 	var R: float = dims.head
 	xf(cv, J.head, J.head_ang)
-	flutter(cv, Vector2(-R * 0.55, -R * 0.2), -22.0, R * 3.9, R * 0.62, R * 0.2, col.hair, st, 0.0, 6)
-	flutter(cv, Vector2(-R * 0.2, -R * 0.4), -6.0, R * 3.4, R * 0.55, R * 0.15, col.hair.darkened(0.08), st, 1.4, 6)
+	flutter(cv, Vector2(-R * 0.55, -R * 0.2), -22.0, R * 3.9, R * 0.64, R * 0.22, col.hair, st, 0.0, 6)
+	flutter(cv, Vector2(-R * 0.2, -R * 0.4), -6.0, R * 3.4, R * 0.56, R * 0.16, col.hair.darkened(0.08), st, 1.4, 6)
 	xf_reset(cv)
 
 
@@ -305,16 +313,18 @@ func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void
 	flutter(cv, Vector2(R * 0.96, -R * 0.4), 6.0, R * 1.5, R * 0.17, R * 0.06, col.hair, st, 2.1, 4)
 
 
-func draw_face_extra(cv: CanvasItem, R: float, p: Dictionary, _st: Dictionary) -> void:
+func draw_face_extra(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
+	# gold hoop earring on ear
+	cv.draw_arc(Vector2(-R * 0.48, R * 0.36), R * 0.11, 0.0, TAU, 10, fc(Color("f0c848"), st), 2.0, true)
 	var face: String = p.get("face", "normal")
 	if face in ["hurt", "ko", "closed"]:
 		return
 	# a longer lash at the outer corner of the near eye and a hint of lip color
 	var o: Vector2 = EYE_NEAR * R + Vector2(-R * 0.3, -R * 0.2)
-	cv.draw_line(o, o + Vector2(-R * 0.1, -R * 0.08), OUTLINE, 2.0, true)
+	cv.draw_line(o, o + Vector2(-R * 0.12, -R * 0.09), OUTLINE, 2.2, true)
 	if face in ["normal", "angry", "closed"]:
 		var m := MOUTH * R
-		cv.draw_line(m + Vector2(-R * 0.12, R * 0.06), m + Vector2(R * 0.1, R * 0.05), Color(0.85, 0.35, 0.35, 0.6), 2.0, true)
+		cv.draw_line(m + Vector2(-R * 0.12, R * 0.06), m + Vector2(R * 0.1, R * 0.05), Color(0.85, 0.35, 0.35, 0.65), 2.2, true)
 
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:

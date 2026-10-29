@@ -23,11 +23,11 @@ func setup() -> void:
 	dims.sword = 150.0
 	col.skin = Color("e6b48a")
 	col.hair = Color("1b1b1d")
-	col.top = Color("1e1b22")
-	col.sleeve = Color("1e1b22")
-	col.pants = Color("c7c0d9")
-	col.shoes = Color("2a1f1a")
-	col.eye = Color("e8b820")
+	col.top = Color("1a1820")
+	col.sleeve = Color("6b1d2f")
+	col.pants = Color("c5bddb")
+	col.shoes = Color("241b17")
+	col.eye = Color("f0be22")
 	style = {"top": "vest", "sleeves": "long", "pants": "long", "feet": "boot", "cuff": false}
 	walk_speed = 3.8
 	back_speed = 3.0
@@ -181,6 +181,11 @@ func more_moves() -> void:
 
 # ---------------------------------------------------------------- drawing
 
+const GOLD := Color("e2b63e")
+const WINE := Color("6b1d2f")
+const WINE_LIGHT := Color("a83e54")
+
+
 func draw_sword(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
 	if s != "f":
 		return
@@ -188,50 +193,104 @@ func draw_sword(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Di
 	var tip: Vector2 = J.tip_f
 	var v := (tip - hand).normalized()
 	var n := Vector2(-v.y, v.x)
-	var start := hand - v * 30.0
-	# long grip with gold wrap and the cross shaped hilt of Yoru
-	shape(cv, capsule(start, hand + v * 12.0, 4.5, 4.5, 3), Color("2c1d14"), st, false, 1.8)
-	for i in 4:
-		var c := start + v * (6.0 + i * 9.0)
-		cv.draw_line(c - n * 4.5, c + n * 4.5, fc(Color("c9a03a"), st), 1.6, true)
-	var g := hand + v * 14.0
-	shape(cv, capsule(g - n * 30.0, g + n * 30.0, 4.0, 4.0, 3), Color("d4aa3c"), st, false, 1.8)
-	for e in [g - n * 30.0, g + n * 30.0]:
-		cv.draw_circle(e, 5.5, fc(Color("d4aa3c"), st))
-		cv.draw_circle(e, 2.5, fc(Color("2f8a5a"), st))
-	cv.draw_circle(g, 6.0, fc(Color("2f8a5a"), st))
-	# the wide black blade
+	var start := hand - v * 32.0
+	# long grip with bandages/gold wrap and jewel pommel
+	shape(cv, capsule(start, hand + v * 12.0, 4.8, 4.8, 3), Color("3b271c"), st, false, 1.8)
+	shape(cv, ellipse(start - v * 3.0, 5.5, 5.5, 10, v.angle()), GOLD, st, false, 1.8)
+	cv.draw_circle(start - v * 3.0, 2.5, fc(Color("289460"), st))
+	for i in 5:
+		var c := start + v * (5.0 + i * 8.0)
+		cv.draw_line(c - n * 4.6, c + n * 4.6, fc(GOLD, st), 1.7, true)
+	# ornate curved golden crossguard of Yoru with filigree & jewels
+	var g := hand + v * 15.0
+	var g_pts := PackedVector2Array()
+	for i in 9:
+		var u := float(i) / 8.0 - 0.5
+		var curve := -pow(absf(u) * 2.0, 1.8) * 10.0
+		g_pts.append(g + n * (u * 72.0) + v * (curve + 4.5))
+	for i in range(8, -1, -1):
+		var u := float(i) / 8.0 - 0.5
+		var curve := -pow(absf(u) * 2.0, 1.8) * 10.0
+		g_pts.append(g + n * (u * 72.0) + v * (curve - 4.5))
+	shape(cv, g_pts, GOLD, st, true, 2.0)
+	for side_s: float in [-1.0, 1.0]:
+		var e: Vector2 = g + n * (34.0 * side_s) - v * 9.0
+		cv.draw_circle(e, 5.8, fc(GOLD, st))
+		cv.draw_circle(e, 2.8, fc(Color("289460"), st))
+		var mid_g: Vector2 = g + n * (18.0 * side_s) - v * 2.5
+		cv.draw_circle(mid_g, 2.4, fc(Color("2c75b8"), st))
+	cv.draw_circle(g, 6.2, fc(Color("289460"), st))
+	# the massive curved black blade Yoru with gleaming green-white edge
 	var b0 := g + v * 4.0
 	var pts := PackedVector2Array()
-	var steps := 8
+	var steps := 10
 	for i in steps + 1:
 		var u := float(i) / steps
-		var w := lerpf(7.5, 1.0, pow(u, 2.5))
-		pts.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 5.0 + w))
+		var w := lerpf(8.5, 1.0, pow(u, 2.4))
+		pts.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 6.0 + w))
 	for i in range(steps, -1, -1):
 		var u := float(i) / steps
-		var w := lerpf(7.5, 1.0, pow(u, 2.5))
-		pts.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 5.0 - w))
+		var w := lerpf(8.5, 1.0, pow(u, 2.4))
+		pts.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 6.0 - w))
 	if not Geometry2D.triangulate_polygon(pts).is_empty():
-		cv.draw_colored_polygon(pts, fc(Color("17181d"), st))
-	outline(cv, pts, 1.6)
+		cv.draw_colored_polygon(pts, fc(Color("15161c"), st))
+	outline(cv, pts, 1.8)
 	var edge := PackedVector2Array()
 	for i in steps + 1:
 		var u := float(i) / steps
-		edge.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 5.0 - lerpf(5.5, 0.5, pow(u, 2.5))))
-	cv.draw_polyline(edge, Color(0.55, 1.0, 0.7, 0.85), 1.6, true)
+		edge.append(b0.lerp(tip, u) + n * (sin(u * PI * 0.9) * 6.0 - lerpf(6.5, 0.5, pow(u, 2.4))))
+	cv.draw_polyline(edge, Color(0.62, 1.0, 0.78, 0.92), 1.8, true)
+
+
+func draw_neck_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, st: Dictionary) -> void:
+	# high flared burgundy collar behind neck and head
+	var col_pts := PackedVector2Array([
+		J.neck + Vector2(-18, 4), J.neck + Vector2(-26, -16),
+		J.neck + Vector2(-8, -22), J.neck + Vector2(16, -18),
+		J.neck + Vector2(12, 4),
+	])
+	shape(cv, col_pts, WINE, st, true, 2.0)
+	cv.draw_polyline(PackedVector2Array([J.neck + Vector2(-24, -14), J.neck + Vector2(-8, -20), J.neck + Vector2(14, -16)]), fc(GOLD, st), 1.8, true)
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	coat_torso(cv, st, L, ch, col.top, Color("6a1f2a"))
-	# the little cross pendant (a knife, Kogatana)
-	var c := Vector2(8 * ch, -L * 0.55)
-	cv.draw_line(Vector2(4 * ch, -L * 0.92), c, fc(Color("c9a03a"), st), 1.4, true)
-	cv.draw_line(c + Vector2(0, -6), c + Vector2(0, 12), fc(Color("e0c050"), st), 3.0, true)
-	cv.draw_line(c + Vector2(-5, -1), c + Vector2(5, -1), fc(Color("e0c050"), st), 3.0, true)
-	# belt
-	shape(cv, PackedVector2Array([Vector2(-16 * ch, 9), Vector2(17 * ch, 9), Vector2(16 * ch, -1), Vector2(-16 * ch, 0)]), Color("3a2a1e"), st, false, 1.6)
-	shape(cv, PackedVector2Array([Vector2(6 * ch, 10), Vector2(14 * ch, 10), Vector2(14 * ch, -2), Vector2(6 * ch, -2)]), Color("d4aa3c"), st, false, 1.4)
+	coat_torso(cv, st, L, ch, col.top, WINE)
+	# golden scroll trim along the wine-red lapels
+	cv.draw_polyline(PackedVector2Array([Vector2(13 * ch, 6), Vector2(13 * ch, -L * 0.5), Vector2(9 * ch, -L * 0.8), Vector2(13 * ch, -L - 2)]), fc(GOLD, st), 1.5, true)
+	# Kogatana cross dagger pendant on golden chain
+	var c := Vector2(7.5 * ch, -L * 0.56)
+	cv.draw_polyline(PackedVector2Array([Vector2(2 * ch, -L * 0.94), c, Vector2(12 * ch, -L * 0.92)]), fc(GOLD, st), 1.5, true)
+	cv.draw_line(c + Vector2(0, -7), c + Vector2(0, 13), fc(GOLD.lightened(0.15), st), 3.2, true)
+	cv.draw_line(c + Vector2(-6, -1), c + Vector2(6, -1), fc(GOLD.lightened(0.15), st), 3.0, true)
+	cv.draw_circle(c + Vector2(0, -1), 1.8, fc(Color("289460"), st))
+	# white/cream belt with ornate golden buckle
+	shape(cv, PackedVector2Array([Vector2(-16.5 * ch, 9), Vector2(17.5 * ch, 9), Vector2(16.5 * ch, -1), Vector2(-16.5 * ch, 0)]), Color("ece6da"), st, true, 1.8)
+	shape(cv, PackedVector2Array([Vector2(5.5 * ch, 10.5), Vector2(14.5 * ch, 10.5), Vector2(14.5 * ch, -2.5), Vector2(5.5 * ch, -2.5)]), GOLD, st, false, 1.6)
+	shape(cv, PackedVector2Array([Vector2(7.5 * ch, 8.0), Vector2(12.5 * ch, 8.0), Vector2(12.5 * ch, 0.0), Vector2(7.5 * ch, 0.0)]), Color("2b221e"), st, false, 1.2)
+
+
+func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
+	var sh: Vector2 = J.shoulder + Vector2(3.0 if s == "f" else -3.0, 2.0).rotated(J.torso_ang)
+	var el: Vector2 = J["elbow_" + s]
+	var ha: Vector2 = J["hand_" + s]
+	var k: float = dims.limb
+	# ornate floral/scroll pattern on the burgundy sleeves
+	for seg in [[sh, el], [el, ha]]:
+		var a: Vector2 = seg[0]
+		var b: Vector2 = seg[1]
+		var d := (b - a).normalized()
+		var n := Vector2(-d.y, d.x)
+		for i in 2:
+			var p := a.lerp(b, 0.32 + i * 0.36) + n * ((2.5 if i % 2 == 0 else -2.5) * k)
+			cv.draw_arc(p, 4.2 * k, 0.0, PI * 1.45, 7, fc(WINE_LIGHT, st), 1.6, true)
+			cv.draw_circle(p, 1.4 * k, fc(GOLD, st))
+	# wide flared white/lavender French cuffs at the wrists with gold trim
+	var c0 := el.lerp(ha, 0.74)
+	var c1 := el.lerp(ha, 0.95)
+	shape(cv, capsule(c0, c1, 10.2 * k, 11.2 * k), Color("dfd8ec"), st, true, 2.0)
+	var wd := (ha - el).normalized()
+	var wn := Vector2(-wd.y, wd.x) * 10.2 * k
+	cv.draw_line(c0 + wn, c0 - wn, fc(GOLD, st), 2.0, true)
 
 
 func draw_back_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
@@ -239,39 +298,69 @@ func draw_back_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) 
 		var tt: float = st.get("time", 0.0)
 		for i in 3:
 			cv.draw_circle(J.neck + Vector2(0, 30), 110.0 + i * 26.0 + 8.0 * sin(tt * 8.0 + i), Color(0.1, 0.35, 0.2, 0.12))
-	coat_tail(cv, J, st, col.top, false, 112.0, 20.0)
+	coat_tail(cv, J, st, col.top, false, 114.0, 22.0)
+	var side := Vector2(1, 0).rotated(J.torso_ang)
+	var up := Vector2(0, -1).rotated(J.torso_ang)
+	var ch: float = dims.chest
+	flutter(cv, J.hip - side * 8.0 * ch + up * 28.0, -10.0, 110.0, 4.0, 3.0, WINE, st, 0.2, 5)
 
 
 func draw_leg_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
+	var kn: Vector2 = J["knee_" + s]
+	var ft: Vector2 = J["foot_" + s]
+	var k: float = dims.limb
+	# leather straps & gold buckles across the dark boots
+	var d := (ft - kn).normalized()
+	var n := Vector2(-d.y, d.x) * 10.5 * k
+	for u: float in [0.55, 0.75]:
+		var bp: Vector2 = kn.lerp(ft, u)
+		cv.draw_line(bp - n, bp + n, fc(Color("16110e"), st), 2.4, true)
+		cv.draw_circle(bp + n * 0.3, 2.0, fc(GOLD, st))
 	if s == "f":
 		coat_tail(cv, J, st, col.top, true, 104.0, 18.0)
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	spikes(cv, R * 0.98, 160.0, 330.0, 7, R * 0.16, col.hair, st, 0.3, Vector2(0, -R * 0.08), 13, -24.0)
-	cv.draw_line(Vector2(-R * 0.28, -R * 0.1), Vector2(-R * 0.2, R * 0.5), fc(col.hair, st), 4.0, true)
+	# sharp sideburns framing the jaw
+	var sb := PackedVector2Array([
+		Vector2(-R * 0.32, -R * 0.12), Vector2(-R * 0.16, -R * 0.08),
+		Vector2(-R * 0.12, R * 0.56), Vector2(-R * 0.28, R * 0.48),
+	])
+	shape(cv, sb, col.hair, st, false, 1.6)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
 	var ink := fc(col.hair, st)
-	# curled mustache and pointed beard
+	# Hawk-Eye concentric inner ring on the near eye
+	var near_ic := EYE_NEAR * R + Vector2(R * 0.24 * 0.28, R * 0.35 * 0.08)
+	cv.draw_arc(near_ic, R * 0.11, 0.0, TAU, 12, Color(0.08, 0.05, 0.02, 0.85), 1.3, true)
+	# signature curled mustache and sculpted pointed goatee
 	var m := Vector2(R * 0.48, R * 0.52)
-	cv.draw_polyline(PackedVector2Array([m + Vector2(-R * 0.3, R * 0.02), m + Vector2(-R * 0.12, -R * 0.06), m + Vector2(0, -R * 0.02), m + Vector2(R * 0.14, -R * 0.06), m + Vector2(R * 0.3, -R * 0.14)]), ink, 3.0, true)
+	cv.draw_polyline(PackedVector2Array([
+		m + Vector2(-R * 0.34, -R * 0.08), m + Vector2(-R * 0.24, R * 0.04),
+		m + Vector2(-R * 0.1, -R * 0.06), m + Vector2(0, -R * 0.02),
+		m + Vector2(R * 0.14, -R * 0.06), m + Vector2(R * 0.28, R * 0.02),
+		m + Vector2(R * 0.34, -R * 0.12),
+	]), ink, 3.0, true)
 	var chin := Vector2(R * 0.42, R * 1.14)
-	shape(cv, PackedVector2Array([chin + Vector2(-R * 0.12, -R * 0.2), chin + Vector2(R * 0.1, -R * 0.2), chin + Vector2(R * 0.02, R * 0.26)]), col.hair, st, false, 1.4)
+	shape(cv, PackedVector2Array([chin + Vector2(-R * 0.14, -R * 0.22), chin + Vector2(R * 0.12, -R * 0.22), chin + Vector2(R * 0.02, R * 0.28)]), col.hair, st, false, 1.5)
+	cv.draw_line(m + Vector2(0, R * 0.18), chin + Vector2(0, -R * 0.18), ink, 2.4, true)
 
 
 func draw_hat(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	var hat := Color("1c1a20")
-	# wide brim
-	shape(cv, ellipse(Vector2(R * 0.05, -R * 0.62), R * 1.7, R * 0.3, 22, -0.1), hat, st)
+	var hat := Color("18161d")
+	# wide sweeping cavalier brim
+	shape(cv, ellipse(Vector2(R * 0.05, -R * 0.62), R * 1.82, R * 0.32, 24, -0.1), hat, st)
 	# tall crown
-	var crown := PackedVector2Array([Vector2(-R * 0.85, -R * 0.68), Vector2(R * 0.85, -R * 0.78), Vector2(R * 0.75, -R * 1.5), Vector2(R * 0.2, -R * 1.72), Vector2(-R * 0.55, -R * 1.62), Vector2(-R * 0.82, -R * 1.3)])
+	var crown := PackedVector2Array([Vector2(-R * 0.85, -R * 0.68), Vector2(R * 0.85, -R * 0.78), Vector2(R * 0.75, -R * 1.52), Vector2(R * 0.2, -R * 1.74), Vector2(-R * 0.55, -R * 1.64), Vector2(-R * 0.82, -R * 1.3)])
 	shape(cv, crown, hat, st)
-	shape(cv, PackedVector2Array([Vector2(-R * 0.85, -R * 0.68), Vector2(R * 0.85, -R * 0.78), Vector2(R * 0.83, -R * 0.94), Vector2(-R * 0.84, -R * 0.86)]), Color("6a1f2a"), st, false, 1.6)
-	# big feather plume sweeping back
-	flutter(cv, Vector2(-R * 0.55, -R * 1.25), -150.0, R * 1.7, R * 0.42, R * 0.18, Color("e8efe6"), st, 0.0, 5)
-	flutter(cv, Vector2(-R * 0.5, -R * 1.1), -130.0, R * 1.3, R * 0.3, R * 0.12, Color("8fc7a0"), st, 1.0, 4)
+	# wine-red hat band with gold trim
+	shape(cv, PackedVector2Array([Vector2(-R * 0.85, -R * 0.68), Vector2(R * 0.85, -R * 0.78), Vector2(R * 0.83, -R * 0.96), Vector2(-R * 0.84, -R * 0.88)]), WINE, st, false, 1.6)
+	cv.draw_line(Vector2(-R * 0.84, -R * 0.88), Vector2(R * 0.83, -R * 0.96), fc(GOLD, st), 1.5, true)
+	# large grey-blue feather plume sweeping back
+	flutter(cv, Vector2(-R * 0.55, -R * 1.25), -150.0, R * 1.85, R * 0.46, R * 0.2, Color("b8c8d8"), st, 0.0, 5)
+	flutter(cv, Vector2(-R * 0.5, -R * 1.1), -132.0, R * 1.4, R * 0.32, R * 0.14, Color("7e98b0"), st, 1.0, 4)
 
 
 func update_fx(f, fx) -> void:

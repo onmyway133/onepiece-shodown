@@ -132,16 +132,33 @@ func setup() -> void:
 
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
-	# red bead necklace
-	for i in 7:
-		var a := deg_to_rad(lerpf(-20.0, 100.0, float(i) / 6.0))
-		var c := Vector2(2 * ch, -L + 4) + Vector2(cos(a) * 14.0 * ch, sin(a) * 18.0)
-		cv.draw_circle(c, 3.6, fc(Color("c4202a"), st))
-		cv.draw_arc(c, 3.6, 0, TAU, 8, OUTLINE, 1.0, true)
-	# belt with the big buckle
-	var belt := PackedVector2Array([Vector2(-17 * ch, 6), Vector2(18 * ch, 6), Vector2(17 * ch, -6), Vector2(-17 * ch, -5)])
-	shape(cv, belt, Color("6b3a1c"), st, false, 1.8)
-	shape(cv, PackedVector2Array([Vector2(8 * ch, 8), Vector2(18 * ch, 8), Vector2(18 * ch, -8), Vector2(8 * ch, -8)]), Color("e0a83a"), st, false, 1.6)
+	# red bead necklace with gloss highlights
+	for i in 8:
+		var a := deg_to_rad(lerpf(-25.0, 108.0, float(i) / 7.0))
+		var c := Vector2(2 * ch, -L + 4) + Vector2(cos(a) * 14.5 * ch, sin(a) * 18.5)
+		cv.draw_circle(c, 3.8, fc(Color("d1222c"), st))
+		cv.draw_circle(c + Vector2(-1.1, -1.1), 1.2, Color(1.0, 0.72, 0.72, 0.8))
+		cv.draw_arc(c, 3.8, 0, TAU, 8, OUTLINE, 1.1, true)
+	# studded belt with big "A" buckle and green-sheathed hip dagger
+	var belt := PackedVector2Array([Vector2(-17.5 * ch, 6.5), Vector2(18.5 * ch, 6.5), Vector2(17.5 * ch, -5.5), Vector2(-17.5 * ch, -4.5)])
+	shape(cv, belt, Color("c87628"), st, true, 1.8)
+	for k in 4:
+		cv.draw_circle(Vector2((-12.0 + k * 5.2) * ch, 0.5), 1.8, fc(Color("e8d290"), st))
+	shape(cv, PackedVector2Array([Vector2(7.5 * ch, 8.5), Vector2(18.5 * ch, 8.5), Vector2(18.5 * ch, -8.5), Vector2(7.5 * ch, -8.5)]), Color("e8b43c"), st, true, 1.6)
+	cv.draw_polyline(PackedVector2Array([Vector2(10 * ch, 5), Vector2(13 * ch, -5), Vector2(16 * ch, 5)]), OUTLINE, 1.8, true)
+	cv.draw_line(Vector2(11 * ch, 1.5), Vector2(15 * ch, 1.5), OUTLINE, 1.6, true)
+	# green dagger sheath at hip
+	var dag := PackedVector2Array([Vector2(-6 * ch, 4), Vector2(-2 * ch, 2), Vector2(-12 * ch, 26), Vector2(-16 * ch, 24)])
+	shape(cv, dag, Color("2e6e4c"), st, true, 1.6)
+	cv.draw_circle(Vector2(-3 * ch, 1), 3.2, fc(Color("e8b43c"), st))
+
+
+func draw_leg_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
+	if s == "f":
+		var th: Vector2 = J.hip.lerp(J.knee_f, 0.48)
+		var u: Vector2 = (J.knee_f - J.hip).normalized()
+		var n := Vector2(-u.y, u.x)
+		shape(cv, capsule(th - n * 9.0, th + n * 9.0, 5.5, 5.5, 4), Color("3a62b8"), st, true, 1.5)
 
 
 func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st: Dictionary) -> void:
@@ -150,10 +167,16 @@ func draw_arm_extra(cv: CanvasItem, J: Dictionary, _p: Dictionary, s: String, st
 		var a: Vector2 = J.shoulder.lerp(J.elbow_b, 0.55)
 		cv.draw_rect(Rect2(a - Vector2(7, 3), Vector2(14, 6)), fc(Color("3a2d5a"), st))
 	else:
-		# log pose bracelet
-		var w: Vector2 = J.elbow_f.lerp(J.hand_f, 0.75)
-		cv.draw_circle(w, 7.5, fc(Color("e0a83a"), st))
-		cv.draw_arc(w, 7.5, 0, TAU, 10, OUTLINE, 1.4, true)
+		# orange elbow guard + red/white striped wrist band + log pose bracelet
+		var el: Vector2 = J.elbow_f
+		shape(cv, ellipse(el, 7.5, 5.5, 10), Color("e8862a"), st, true, 1.6)
+		var w0: Vector2 = J.elbow_f.lerp(J.hand_f, 0.62)
+		var w1: Vector2 = J.elbow_f.lerp(J.hand_f, 0.8)
+		shape(cv, capsule(w0, w1, 6.2, 5.8, 4), Color("d62828"), st, true, 1.5)
+		cv.draw_circle(w0.lerp(w1, 0.5), 4.0, fc(Color("f4f2ec"), st))
+		var lp: Vector2 = J.elbow_f.lerp(J.hand_f, 0.84)
+		cv.draw_circle(lp, 6.5, fc(Color("7ec8e8"), st))
+		cv.draw_arc(lp, 6.5, 0, TAU, 10, OUTLINE, 1.5, true)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
@@ -163,29 +186,35 @@ func draw_face_extra(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	spikes(cv, R * 1.0, 100.0, 345.0, 8, R * 0.32, col.hair, st, 0.3, Vector2(-R * 0.05, -R * 0.05), 5, -14.0)
+	spikes(cv, R * 1.0, 100.0, 345.0, 8, R * 0.34, col.hair, st, 0.3, Vector2(-R * 0.05, -R * 0.05), 5, -14.0)
 	var b := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.2, -1.0], [0.6, -0.95], [0.98, -0.6], [0.98, -0.3], [0.82, -0.44], [0.7, -0.26], [0.58, -0.5], [0.44, -0.3], [0.32, -0.54], [0.14, -0.36], [0.02, -0.6], [-0.22, -0.56]])
 	shape(cv, b, col.hair, st, true, 2.2)
 
 
 func draw_hat(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
-	var Rh := R * 1.3
+	var Rh := R * 1.32
 	var orange := Color("e8862a")
 	# cowboy hat: curled brim and pinched crown, worn tilted back
 	var brim := PackedVector2Array()
 	for i in 20:
 		var a := TAU * float(i) / 20.0
 		var y := sin(a) * Rh * 0.28 - absf(cos(a)) * Rh * 0.18
-		brim.append(Vector2(cos(a) * Rh * 1.45 - Rh * 0.2, y - Rh * 0.6))
+		brim.append(Vector2(cos(a) * Rh * 1.48 - Rh * 0.2, y - Rh * 0.6))
 	shape(cv, brim, orange, st)
-	var crown := PackedVector2Array([Vector2(-Rh * 0.95, -Rh * 0.75), Vector2(Rh * 0.6, -Rh * 0.75), Vector2(Rh * 0.55, -Rh * 1.25), Vector2(Rh * 0.2, -Rh * 1.45), Vector2(-Rh * 0.15, -Rh * 1.3), Vector2(-Rh * 0.55, -Rh * 1.48), Vector2(-Rh * 0.9, -Rh * 1.25)])
+	var crown := PackedVector2Array([Vector2(-Rh * 0.95, -Rh * 0.75), Vector2(Rh * 0.62, -Rh * 0.75), Vector2(Rh * 0.56, -Rh * 1.25), Vector2(Rh * 0.2, -Rh * 1.46), Vector2(-Rh * 0.15, -Rh * 1.3), Vector2(-Rh * 0.55, -Rh * 1.48), Vector2(-Rh * 0.9, -Rh * 1.25)])
 	shape(cv, crown, orange, st)
-	shape(cv, PackedVector2Array([Vector2(-Rh * 0.95, -Rh * 0.76), Vector2(Rh * 0.6, -Rh * 0.76), Vector2(Rh * 0.58, -Rh * 0.92), Vector2(-Rh * 0.93, -Rh * 0.92)]), Color("2a1a14"), st, false, 1.6)
-	# smiley and sad badges
-	cv.draw_circle(Vector2(Rh * 0.15, -Rh * 1.08), Rh * 0.15, fc(Color("3f6fc8"), st))
-	cv.draw_arc(Vector2(Rh * 0.15, -Rh * 1.06), Rh * 0.08, 0.3, PI - 0.3, 6, Color.WHITE, 1.4, true)
-	cv.draw_circle(Vector2(-Rh * 0.4, -Rh * 1.08), Rh * 0.15, fc(Color("c43a3a"), st))
-	cv.draw_arc(Vector2(-Rh * 0.4, -Rh * 1.0), Rh * 0.08, PI + 0.3, TAU - 0.3, 6, Color.WHITE, 1.4, true)
+	# red bead string along the hatband + hanging chin cord with skull bead
+	for k in 9:
+		var bx := lerpf(-Rh * 0.9, Rh * 0.56, float(k) / 8.0)
+		cv.draw_circle(Vector2(bx, -Rh * 0.82), 2.8, fc(Color("d1222c"), st))
+		cv.draw_arc(Vector2(bx, -Rh * 0.82), 2.8, 0, TAU, 6, OUTLINE, 0.9, true)
+	# blue smiley and sad medallions
+	cv.draw_circle(Vector2(Rh * 0.16, -Rh * 1.08), Rh * 0.16, fc(Color("3f72d0"), st))
+	cv.draw_arc(Vector2(Rh * 0.16, -Rh * 1.08), Rh * 0.16, 0, TAU, 10, OUTLINE, 1.3, true)
+	cv.draw_arc(Vector2(Rh * 0.16, -Rh * 1.06), Rh * 0.08, 0.3, PI - 0.3, 6, Color.WHITE, 1.5, true)
+	cv.draw_circle(Vector2(-Rh * 0.42, -Rh * 1.08), Rh * 0.16, fc(Color("3f72d0"), st))
+	cv.draw_arc(Vector2(-Rh * 0.42, -Rh * 1.08), Rh * 0.16, 0, TAU, 10, OUTLINE, 1.3, true)
+	cv.draw_arc(Vector2(-Rh * 0.42, -Rh * 1.0), Rh * 0.08, PI + 0.3, TAU - 0.3, 6, Color.WHITE, 1.5, true)
 
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:

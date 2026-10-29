@@ -146,15 +146,23 @@ func setup() -> void:
 
 func draw_torso_extra(cv: CanvasItem, _J: Dictionary, _p: Dictionary, st: Dictionary, L: float, ch: float) -> void:
 	# jacket tails swing behind the hips
-	flutter(cv, Vector2(-15 * ch, -2), -10.0, 34.0, 11.0, 8.0, col.top, st, 0.5, 4)
-	# blue shirt V, black tie and jacket lapel
-	var shirt := PackedVector2Array([Vector2(8 * ch, -L * 0.45), Vector2(19 * ch, -L * 0.7), Vector2(15 * ch, -L - 3), Vector2(4 * ch, -L - 1)])
-	shape(cv, shirt, Color("4f7fcf"), st, false, 1.8)
-	var tie := PackedVector2Array([Vector2(13 * ch, -L + 2), Vector2(17 * ch, -L * 0.62), Vector2(14 * ch, -L * 0.5), Vector2(11 * ch, -L * 0.62)])
-	shape(cv, tie, Color("101014"), st, false, 1.4)
-	cv.draw_line(Vector2(5 * ch, -L), Vector2(9 * ch, -L * 0.42), fc(col.top, st).lightened(0.25), 2.0, true)
-	for i in 2:
-		cv.draw_circle(Vector2(9 * ch, -L * (0.3 + i * 0.1)), 2.0, fc(Color("c9a03a"), st))
+	flutter(cv, Vector2(-15 * ch, -2), -10.0, 36.0, 12.0, 8.5, col.top, st, 0.5, 4)
+	# striped blue/gold shirt V, collar wings, black tie and peaked jacket lapel
+	var shirt := PackedVector2Array([Vector2(7.5 * ch, -L * 0.42), Vector2(19.5 * ch, -L * 0.7), Vector2(15.5 * ch, -L - 3), Vector2(3.5 * ch, -L - 1)])
+	shape(cv, shirt, Color("4f7fcf"), st, true, 1.8)
+	var col_l := PackedVector2Array([Vector2(3 * ch, -L - 2), Vector2(11 * ch, -L + 3), Vector2(4 * ch, -L * 0.82)])
+	var col_r := PackedVector2Array([Vector2(15 * ch, -L - 2), Vector2(19 * ch, -L * 0.8), Vector2(13 * ch, -L * 0.82)])
+	shape(cv, col_l, Color("6ca0f0"), st, true, 1.5)
+	shape(cv, col_r, Color("6ca0f0"), st, true, 1.5)
+	var tie := PackedVector2Array([Vector2(12.5 * ch, -L + 1.5), Vector2(16.8 * ch, -L * 0.6), Vector2(14.0 * ch, -L * 0.46), Vector2(10.8 * ch, -L * 0.6)])
+	shape(cv, tie, Color("101014"), st, true, 1.5)
+	var lap := PackedVector2Array([Vector2(2.5 * ch, -L), Vector2(7.5 * ch, -L * 0.42), Vector2(4.0 * ch, -L * 0.46), Vector2(-1.5 * ch, -L * 0.88)])
+	shape(cv, lap, col.top.lightened(0.08), st, true, 1.8)
+	var pock := PackedVector2Array([Vector2(-8 * ch, -L * 0.68), Vector2(-2.5 * ch, -L * 0.66), Vector2(-4.5 * ch, -L * 0.78)])
+	cv.draw_colored_polygon(pock, fc(Color("f4d058"), st))
+	for r in 2:
+		for c in 2:
+			cv.draw_circle(Vector2((4.5 + c * 6.5) * ch, -L * (0.33 - r * 0.14)), 2.0, fc(Color("e6b83a"), st))
 
 
 func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void:
@@ -162,14 +170,17 @@ func draw_hair(cv: CanvasItem, R: float, _p: Dictionary, st: Dictionary) -> void
 	var back := PackedVector2Array()
 	for i in 13:
 		var a := deg_to_rad(lerpf(120.0, 330.0, float(i) / 12.0))
-		var r := R * 1.08 + (sin(i * 1.7) * R * 0.05)
+		var r := R * 1.1 + (sin(i * 1.7) * R * 0.05)
 		back.append(Vector2(cos(a) * r, sin(a) * r))
-	back.append(Vector2(R * 0.4, -R * 0.5))
-	back.append(Vector2(-R * 0.6, R * 0.55))
+	back.append(Vector2(R * 0.42, -R * 0.5))
+	back.append(Vector2(-R * 0.62, R * 0.56))
 	shape(cv, back, col.hair, st, true, 2.0)
 	# the long fringe hides the near eye
-	var bang := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.3, -1.04], [0.5, -0.96], [0.44, -0.5], [0.38, -0.1], [0.34, 0.34], [0.22, 0.12], [0.12, 0.4], [0.0, 0.12], [-0.14, 0.26], [-0.22, -0.3], [-0.38, -0.6]])
+	var bang := local_pts(Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN, R, [[-0.32, -1.05], [0.52, -0.96], [0.46, -0.5], [0.4, -0.08], [0.36, 0.36], [0.22, 0.12], [0.12, 0.42], [0.0, 0.12], [-0.14, 0.28], [-0.22, -0.3], [-0.4, -0.6]])
 	shape(cv, bang, col.hair, st, true, 2.0)
+	var s_line := shadow_of(fc(col.hair, st)).darkened(0.15)
+	cv.draw_line(Vector2(R * 0.08, -R * 0.9), Vector2(R * 0.28, R * 0.18), s_line, 1.4, true)
+	cv.draw_line(Vector2(-R * 0.12, -R * 0.85), Vector2(R * 0.06, R * 0.15), s_line, 1.4, true)
 
 
 func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictionary) -> void:
@@ -177,20 +188,24 @@ func draw_brow(cv: CanvasItem, eye: Vector2, R: float, tilt: float, st: Dictiona
 	if _squash > 0.9:
 		return
 	var c := eye + Vector2(-R * 0.14, -R * 0.42 - tilt * 0.3)
-	var ink := fc(col.hair, st).darkened(0.45)
-	cv.draw_arc(c, R * 0.075, 0.0, TAU * 0.85, 8, ink, 2.4, true)
-	cv.draw_line(c + Vector2(R * 0.075, 0), eye + Vector2(R * 0.2, -R * 0.4 + tilt), ink, 2.8, true)
+	var ink := fc(col.hair, st).darkened(0.48)
+	cv.draw_arc(c, R * 0.08, 0.0, TAU * 0.85, 8, ink, 2.5, true)
+	cv.draw_line(c + Vector2(R * 0.08, 0), eye + Vector2(R * 0.22, -R * 0.4 + tilt), ink, 2.8, true)
 
 
 func draw_face_extra(cv: CanvasItem, R: float, p: Dictionary, st: Dictionary) -> void:
-	# goatee and cigarette
-	cv.draw_line(Vector2(R * 0.4, R * 1.04), Vector2(R * 0.44, R * 1.24), fc(col.hair, st).darkened(0.25), 3.4, true)
+	# goatee, upper-lip stubble, and cigarette with glowing ember
+	var ink := fc(col.hair, st).darkened(0.32)
+	var gt := PackedVector2Array([Vector2(R * 0.34, R * 0.98), Vector2(R * 0.5, R * 0.96), Vector2(R * 0.46, R * 1.24), Vector2(R * 0.38, R * 1.22)])
+	cv.draw_colored_polygon(gt, ink)
 	if p.get("face", "") in ["shout", "attack", "hurt", "ko"]:
 		return
 	var m := Vector2(R * 0.58, R * 0.64)
-	var tip := m + Vector2(R * 0.55, -R * 0.08)
-	cv.draw_line(m, tip, Color(0.96, 0.95, 0.9), 4.0, true)
-	cv.draw_line(tip - Vector2(R * 0.08, 0), tip, Color(1.0, 0.45, 0.1), 4.0, true)
+	var tip := m + Vector2(R * 0.58, -R * 0.09)
+	cv.draw_line(m, tip, OUTLINE, 5.2, true)
+	cv.draw_line(m, m.lerp(tip, 0.28), Color("d99a4e"), 3.2, true)
+	cv.draw_line(m.lerp(tip, 0.28), tip, Color(0.96, 0.95, 0.9), 3.2, true)
+	cv.draw_circle(tip, 2.4, Color(1.0, 0.42, 0.08))
 
 
 func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary) -> void:
@@ -199,13 +214,13 @@ func draw_front_fx(cv: CanvasItem, J: Dictionary, p: Dictionary, st: Dictionary)
 	var tt: float = st.get("time", 0.0)
 	var a: Vector2 = J.knee_f
 	var b: Vector2 = J.toe_f
-	for i in 6:
-		var u := float(i) / 5.0
+	for i in 7:
+		var u := float(i) / 6.0
 		var c := a.lerp(b, u)
 		var r := 16.0 + 8.0 * sin(tt * 30.0 + i)
-		cv.draw_circle(c, r + 8.0, Color(1.0, 0.3, 0.0, 0.35))
-		cv.draw_circle(c, r, Color(1.0, 0.65, 0.1, 0.55))
-		cv.draw_circle(c, r * 0.5, Color(1.0, 0.95, 0.6, 0.7))
+		cv.draw_circle(c, r + 9.0, Color(1.0, 0.28, 0.02, 0.38))
+		cv.draw_circle(c, r, Color(1.0, 0.65, 0.1, 0.6))
+		cv.draw_circle(c, r * 0.52, Color(1.0, 0.96, 0.65, 0.78))
 
 
 func update_fx(f, fx) -> void:
